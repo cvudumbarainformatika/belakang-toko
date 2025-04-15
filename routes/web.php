@@ -32,6 +32,9 @@ Route::get('/autogen', function () {
 Route::get('/autogenx', function () {
     return 'wewq';
 });
+Route::get('/infophp', function () {
+    phpinfo(); // Menampilkan informasi PHP
+});
 Route::get('/test', function () {
     $data = HeaderPenjualan::find(9);
     $awal = explode('-', $data->no_penjualan);
