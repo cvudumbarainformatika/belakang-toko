@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\Master\UsersController;
 use Illuminate\Support\Facades\Route;
 
 Route::group([
-    //'middleware' => 'auth:api',
+    'middleware' => 'auth:api',
     'prefix' => 'master/users'
 ], function (): void {
     Route::get('/getdata', [UsersController::class, 'get_user']);

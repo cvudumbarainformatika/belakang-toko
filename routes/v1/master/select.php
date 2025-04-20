@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\Master\SelectController;
 use Illuminate\Support\Facades\Route;
 
 Route::group([
-    //'middleware' => 'auth:api',
+    'middleware' => 'auth:api',
     'prefix' => 'master/select'
 ], function () {
     Route::get('/master-satuan-all', [SelectController::class, 'satuan_all']);
