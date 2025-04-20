@@ -39,4 +39,22 @@ class loginController extends Controller
             'token'   => $token
         ], 200);
     }
+
+    public function logout()
+    {
+        try {
+            auth()->logout();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully logged out'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to logout'
+            ], 500);
+        }
+    }
 }
