@@ -1,15 +1,11 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
-<<<<<<< HEAD
-        <title>.::JANGUR_KERAMIK::.</title>
-=======
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
->>>>>>> 16c3a8ef99f9ba5489aab0def5b3d8c7d903b85c
 
-    <title>Laravel</title>
+    <title>.::JANGUR KERAMIK::.</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
