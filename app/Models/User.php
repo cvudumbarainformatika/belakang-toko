@@ -3,6 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Models\Admin\AdminMenu;
+use App\Models\Admin\AdminSub;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -53,4 +56,10 @@ class User extends Authenticatable implements JWTSubject
     {
         return [];
     }
+
+    public function hakakses()
+    {
+        return $this->hasMany(HakaksesMenu::class,'user_id');
+    }
+
 }
