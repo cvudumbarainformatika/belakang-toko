@@ -10,4 +10,7 @@ Route::group([
     Route::get('/getdata', [UsersController::class, 'get_user']);
     Route::post('/save', [UsersController::class, 'save_user']);
     Route::post('/delete', [UsersController::class, 'remove_user']);
+    Route::get('/getdatasetiing', [UsersController::class, 'getdatasetiing']);
+    Route::get('/getmenu', [UsersController::class, 'getmenu']);
+    Route::post('/savehakakses', [UsersController::class, 'savehakakses']);
 });
