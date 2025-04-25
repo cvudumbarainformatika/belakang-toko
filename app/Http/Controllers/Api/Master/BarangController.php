@@ -77,9 +77,13 @@ class BarangController extends Controller
 
         if ($request->kodebarang === '' || $request->kodebarang === null)
         {
-            $cek = Barang::count();
-            $total = (int) $cek + (int) 1;
-            $kodebarang = FormatingHelper::matkdbarang($total, 'BRG');
+             DB::select('call kodebarang(@nomor)');
+            $x = DB::table('counter')->select('kodebarang')->get();
+            $no = $x[0]->kodebarang;
+
+            // $cek = Barang::count();
+            // $total = (int) $cek + (int) 1;
+            $kodebarang = FormatingHelper::matkdbarang($no, 'BRG');
         } else {
             $kodebarang = $request->kodebarang;
         }
