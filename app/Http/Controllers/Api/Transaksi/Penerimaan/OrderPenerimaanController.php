@@ -84,7 +84,7 @@ class OrderPenerimaanController extends Controller
                 }
             ]
         )
-        // ->orderBy('id', 'desc')
+
         ->when(request('q'), function ($query) {
             $query->where('noorder', 'like', '%' . request('q') . '%');
         })
