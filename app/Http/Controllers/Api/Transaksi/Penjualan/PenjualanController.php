@@ -61,7 +61,7 @@ class PenjualanController extends Controller
     public function getSales()
     {
         // temporary sebelum ada data sales
-        $data = User::get();
+        $data = User::where('jabatan', 'Sales')->get();
         return new JsonResponse($data);
     }
     public function getPelanggan()
