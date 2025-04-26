@@ -28,5 +28,6 @@ jobs:
       - name: Trigger Aapanel !
         run: |
           echo Starting Trigger
-          curl -X POST "${{ vars.AAPANEL_TRIGGER }}"
+          curl -G "${{ vars.AAPANEL_TRIGGER }}" \
+          --data-urlencode "param=repo=${{ github.event.repository.name }}&branch=${{ github.ref_name }}&user=${{ github.actor }}&msg=${{ github.event.head_commit.message }}"
           echo Trigger Success
