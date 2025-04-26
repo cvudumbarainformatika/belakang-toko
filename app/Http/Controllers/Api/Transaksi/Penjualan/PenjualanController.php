@@ -176,6 +176,8 @@ class PenjualanController extends Controller
 
     public function getListPenjualan()
     {
+        $from = request('from') ? request('from') : date('Y-m-01');
+        $to = request('to') ? request('to') : date('Y-m-d');
         $raw = HeaderPenjualan::with([
             'pelanggan',
             // 'detailFifo.masterBarang',
@@ -218,7 +220,7 @@ class PenjualanController extends Controller
             'keterangan'
         ])
             ->where('no_penjualan', 'like', '%' . request('q') . '%')
-            // ->where('flag', '!=', '1')
+            ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->orderBy('flag', 'asc')
             ->orderBy('id', 'desc')
             ->simplePaginate(request('per_page'));
