@@ -27,6 +27,7 @@ class PenjualanController extends Controller
             'id',
             'satuan_k',
             'seri',
+            'isi',
             'ukuran',
             'hargajual1',
             'hargajual2',
