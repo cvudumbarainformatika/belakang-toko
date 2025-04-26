@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Transaksi\Penjualan;
 use App\Helpers\FormatingHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Barang;
+use App\Models\KeteranganPelanggan;
 use App\Models\Pelanggan;
 use App\Models\Stok\stok;
 use App\Models\Transaksi\Penjualan\DetailPenjualan;
@@ -124,7 +125,32 @@ class PenjualanController extends Controller
             if (!$detail) {
                 throw new Exception("Header Tidak Tersimpan", 1);
             }
-            $header->load('detail.masterBarang', 'sales', 'pelanggan');
+            $header->load([
+                'detail' => function ($q) {
+                    $q->with([
+                        'masterBarang' => function ($x) {
+                            $x->with([
+                                'stok' => function ($q) {
+                                    $q->select(
+                                        'kdbarang',
+                                        DB::raw('sum(jumlah_b) as jumlah_b'),
+                                        DB::raw('sum(jumlah_k) as jumlah_k'),
+                                        'isi',
+                                        'satuan_b',
+                                        'satuan_k',
+                                        'harga_beli_b',
+                                        'harga_beli_k',
+                                    )
+                                        ->groupBy('kdbarang')
+                                        ->where('jumlah_k', '>', 0);
+                                },
+                            ]);
+                        }
+                    ]);
+                },
+                'sales',
+                'pelanggan'
+            ]);
             DB::commit();
             return new JsonResponse([
                 'message' => 'Data telah disimpan',
@@ -162,8 +188,9 @@ class PenjualanController extends Controller
                     DB::raw('sum(subtotal) as subtotal'),
                     DB::raw('sum(diskon) as diskon'),
                 )
-                    ->groupBy('kodebarang')
-                    ->with(['masterBarang']);
+                    ->groupBy('kodebarang', 'no_penjualan')
+                    ->with(['masterBarang'])
+                ;
             },
             'detail' => function ($q) {
                 $q->with([
@@ -188,6 +215,7 @@ class PenjualanController extends Controller
                 ]);
             },
             'sales',
+            'keterangan'
         ])
             ->where('no_penjualan', 'like', '%' . request('q') . '%')
             // ->where('flag', '!=', '1')
@@ -246,10 +274,44 @@ class PenjualanController extends Controller
         $header = HeaderPenjualan::where('no_penjualan', '=', $request->no_penjualan)
             ->first();
         $isDeleteHeader = '0';
+
         if (sizeof($allDetail) == 0) {
             $header->delete();
             $isDeleteHeader = '1';
-        } else $header->load('pelanggan', 'detail.masterBarang');
+        } else {
+            $total = DetailPenjualan::where('no_penjualan', '=', $request->no_penjualan)->sum('subtotal');
+            $totalDiskon = DetailPenjualan::where('no_penjualan', '=', $request->no_penjualan)->sum('diskon');
+            $header->update([
+                'total' => $total,
+                'total_diskon' => $totalDiskon,
+            ]);
+            $header->load([
+                'detail' => function ($q) {
+                    $q->with([
+                        'masterBarang' => function ($x) {
+                            $x->with([
+                                'stok' => function ($q) {
+                                    $q->select(
+                                        'kdbarang',
+                                        DB::raw('sum(jumlah_b) as jumlah_b'),
+                                        DB::raw('sum(jumlah_k) as jumlah_k'),
+                                        'isi',
+                                        'satuan_b',
+                                        'satuan_k',
+                                        'harga_beli_b',
+                                        'harga_beli_k',
+                                    )
+                                        ->groupBy('kdbarang')
+                                        ->where('jumlah_k', '>', 0);
+                                },
+                            ]);
+                        }
+                    ]);
+                },
+                'sales',
+                'pelanggan'
+            ]);
+        }
 
         return new JsonResponse([
             'message' => 'Data Sudah Dihapus',
@@ -271,7 +333,18 @@ class PenjualanController extends Controller
                 'kembali' => $request->kembali,
                 'flag' => $request->cara_bayar,
             ]);
-
+            if ($request->dataPelanggan['nama'] != null) {
+                KeteranganPelanggan::updateOrCreate(
+                    [
+                        'header_penjualan_id' => $data->id,
+                    ],
+                    [
+                        'nama' => $request->dataPelanggan['nama'],
+                        'tlp' => $request->dataPelanggan['tlp'],
+                        'alamat' => $request->dataPelanggan['alamat'],
+                    ]
+                );
+            }
             $detail = DetailPenjualan::where('no_penjualan', $request->no_penjualan)->get();
             $kode = $detail->pluck('kodebarang');
             $stoks = stok::lockForUpdate()->whereIn('kdbarang', $kode)->where('jumlah_k', '>', 0)->orderBy('id', 'asc')->get();
@@ -318,8 +391,9 @@ class PenjualanController extends Controller
                     // Skenario 2: Jika masih ada sisa yang belum terpenuhi
                     if ($jumlahKeluar > 0) {
                         $stok = stok::where('kdbarang', $item->kodebarang)->orderBy('id', 'desc')->first();
+                        $barang = Barang::where('kodebarang', $item->kodebarang)->first();
                         if (!$stok) {
-                            throw new \Exception('Belum pernah ada stok untuk barang ini');
+                            throw new \Exception('Belum pernah ada stok untuk ' . $barang->namabarang);
                         }
                         $simpanRinciFifo = DetailPenjualanFifo::create([
                             'no_penjualan' => $request->no_penjualan,
@@ -384,7 +458,8 @@ class PenjualanController extends Controller
                         ->with(['masterBarang']);
                 },
                 'sales',
-                'pelanggan'
+                'pelanggan',
+                'keterangan'
             ]);
 
             DB::commit();

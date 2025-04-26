@@ -2,6 +2,7 @@
 
 namespace App\Models\Transaksi\Penjualan;
 
+use App\Models\KeteranganPelanggan;
 use App\Models\Pelanggan;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,5 +31,9 @@ class HeaderPenjualan extends Model
     public function sales()
     {
         return $this->belongsTo(User::class, 'sales_id');
+    }
+    public function keterangan()
+    {
+        return $this->hasOne(KeteranganPelanggan::class, 'header_penjualan_id', 'id');
     }
 }
