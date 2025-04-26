@@ -82,7 +82,7 @@ class PenerimaanController extends Controller
                     $update->save();
                 }
 
-                $cekflagingrinci = OrderPembelian_r::where('noorder', $request->noorder)->where('flaging','!=', '1')->count();
+                $cekflagingrinci = OrderPembelian_r::where('noorder', $request->noorder)->where('flaging', null)->count();
                 if($cekflagingrinci === 0)
                 {
                     $updateorderheder = OrderPembelian_h::where('noorder', $request->noorder)->first();
