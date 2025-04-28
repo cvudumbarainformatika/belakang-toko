@@ -9,6 +9,7 @@ use App\Models\Transaksi\Penjualan\HeaderPenjualan;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReturPenjualanController extends Controller
 {
@@ -42,7 +43,25 @@ class ReturPenjualanController extends Controller
 
             ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->whereIn('flag', ['2', '3', '4', '5'])
-            ->with(['pelanggan', 'sales', 'detail.masterBarang', 'keterangan'])
+            ->with([
+                'pelanggan',
+                'sales',
+                'detail.masterBarang',
+                'keterangan',
+                'detailFifo' => function ($q) {
+                    $q->select(
+                        'no_penjualan',
+                        'kodebarang',
+                        'harga_jual',
+                        DB::raw('sum(jumlah) as jumlah'),
+                        DB::raw('sum(subtotal) as subtotal'),
+                        DB::raw('sum(diskon) as diskon'),
+                    )
+                        ->groupBy('kodebarang', 'no_penjualan')
+                        ->with(['masterBarang'])
+                    ;
+                },
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(request('per_page') ?? 10);
         $data['data'] = collect($raw)['data'];
