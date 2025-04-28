@@ -15,16 +15,21 @@ class MenuController extends Controller
     public function list()
     {
         $user = auth()->user();
-        if($user->username === 'sa'){
-            $data = AdminMenu::with('subs')->oldest('urut')->get();
-        }else{
-            $data = User::with(
-                [
-                    'hakakses.menus',
-                    'hakakses.subs'
-                ]
-            )
-            ->where('id', auth()->user()->id)->first();
+        if ($user->username === 'sa') {
+            $data = AdminMenu::with([
+                'subs' => function ($query) {
+                    $query->oldest('urut'); // Mengurutkan subs
+                }
+            ])->oldest('urut')->get();
+        } else {
+            $data = User::with([
+                'hakakses.menus' => function ($query) {
+                    $query->oldest('urut'); // Mengurutkan menus berdasarkan field urut
+                },
+                'hakakses.subs' => function ($query) {
+                    $query->oldest('urut'); // Mengurutkan subs berdasarkan field urut
+                }
+            ])->where('id', auth()->user()->id)->first();
         }
         return new JsonResponse($data);
     }
