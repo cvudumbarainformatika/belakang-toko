@@ -75,18 +75,27 @@ class OrderPenerimaanController extends Controller
 
     public function getlistorder()
     {
-        $list = OrderPembelian_h::with(
-            [
-                'suplier',
-                'rinci' => function($rinci){
-                    $rinci->select('*',DB::raw('(jumlahpo*hargapo) as subtotal'))
-                    ->with(['mbarang']);
-                }
-            ]
-        )
+        $from = request('from').' 00:00:00';
+        $to = request('to').' 23:59:59';
 
+        $list = OrderPembelian_h::select('orderpembelian_h.*','orderpembelian_h.kdsuplier','suppliers.kodesupl','suppliers.nama')
+        ->leftJoin('suppliers', 'orderpembelian_h.kdsuplier', '=', 'suppliers.kodesupl')
+        ->with([
+            'suplier',
+            'rinci' => function($rinci){
+                $rinci->select('*', DB::raw('(jumlahpo*hargapo) as subtotal'))
+                ->with(['mbarang']);
+            }
+        ])
+        ->whereBetween('orderpembelian_h.tglorder', [
+            $from,
+            $to
+        ])
         ->when(request('q'), function ($query) {
-            $query->where('noorder', 'like', '%' . request('q') . '%');
+            $query->where(function($q) {
+                $q->where('orderpembelian_h.noorder', 'like', '%' . request('q') . '%')
+                  ->orWhere('suppliers.nama', 'like', '%' . request('q') . '%');
+            });
         })
         ->simplePaginate(request('per_page'));
         return new JsonResponse($list);
