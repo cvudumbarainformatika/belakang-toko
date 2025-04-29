@@ -57,7 +57,7 @@ class PenerimaanController extends Controller
                 $jumlah_k = $request->isi*$request->jumlahpo;
                 $hargabelisatuankecil = $request->hargaasli/$request->isi;
                 $subtotal = $request->jumlahpo*$request->hargafaktur;
-                $subtotalfix = $hargabelisatuankecil*$request->jumlahpo_k*$request->jumlahpo;
+                $subtotalfix = $hargabelisatuankecil*$jumlah_k;
                 $simpanR = Penerimaan_r::create(
                     [
                         'nopenerimaan' => $nopenerimaan,
@@ -108,11 +108,15 @@ class PenerimaanController extends Controller
     {
         $list = Penerimaan_h::with(
             [
+                'rinci' => function($rincipenerimaan){
+                    $rincipenerimaan->with(['mbarang']);
+                },
                 'suplier',
-                'rinci'
-                => function($rinci){
-                    $rinci->with(['mbarang']);
-                }
+                'orderheder',
+                'orderheder.rinci' => function($rinci){
+                    $rinci->select('*','jumlahpo as jumlahpox','hargapo as hargafix',DB::raw('(jumlahpo*hargapo) as subtotal'))
+                    ->with(['mbarang']);
+                },
             ]
         )
         ->where('nopenerimaan', $nopenerimaan)

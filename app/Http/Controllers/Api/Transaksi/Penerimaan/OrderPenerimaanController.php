@@ -179,9 +179,23 @@ class OrderPenerimaanController extends Controller
             [
                 'suplier',
                 'rinci' => function($rinci){
-                    $rinci->select('*','jumlahpo as jumlahpox','hargapo as hargafix',DB::raw('(jumlahpo*hargapo) as subtotal'))
-                    ->with(['mbarang']);
-                },
+                    $rinci->select('orderpembelian_r.*', 'jumlahpo as jumlahpox', 'hargapo as hargafix',
+                        DB::raw('(jumlahpo*hargapo) as subtotal'),
+                        DB::raw('COALESCE(SUM(p.jumlah_b), 0) as jumlahditerima'),
+                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0)) as sisajumlahbelumditerima'),
+                        DB::raw('\'0\' as itemrusak'))
+                    ->leftJoin('penerimaan_r as p', function($join) {
+                        $join->on('p.kdbarang', '=', 'orderpembelian_r.kdbarang')
+                            ->on('p.noorder', '=', 'orderpembelian_r.noorder');
+                    })
+                    ->with(['mbarang'])
+                    ->groupBy('orderpembelian_r.id', 'orderpembelian_r.noorder', 'orderpembelian_r.kdbarang',
+                        'orderpembelian_r.jumlahpo', 'orderpembelian_r.satuan_b', 'orderpembelian_r.jumlahpo_k',
+                        'orderpembelian_r.satuan_k', 'orderpembelian_r.isi', 'orderpembelian_r.hargapo',
+                        'orderpembelian_r.total', 'orderpembelian_r.user', 'orderpembelian_r.flaging',
+                        'orderpembelian_r.created_at', 'orderpembelian_r.updated_at');
+                }
+
             ]
         )->
         where('flaging', '1')
@@ -190,3 +204,4 @@ class OrderPenerimaanController extends Controller
         return new JsonResponse($data);
     }
 }
+

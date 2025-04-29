@@ -17,4 +17,6 @@ class Penerimaan_r extends Model
         return  $this->hasOne(Barang::class, 'kodebarang', 'kdbarang');
     }
 
+
+
 }
