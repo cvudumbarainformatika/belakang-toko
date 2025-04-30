@@ -181,8 +181,12 @@ class OrderPenerimaanController extends Controller
                 'rinci' => function($rinci){
                     $rinci->select('orderpembelian_r.*', 'jumlahpo as jumlahpox', 'hargapo as hargafix',
                         DB::raw('(jumlahpo*hargapo) as subtotal'),
-                        DB::raw('COALESCE(SUM(p.jumlah_b), 0) as jumlahditerima'),
-                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0)) as sisajumlahbelumditerima'),
+                        DB::raw('p.id as idx'),
+                        DB::raw('COALESCE(SUM(p.jumlah_b), 0) as totalditerima'),
+                        DB::raw('COALESCE(SUM(p.jumlah_datang_b), 0) as totalditerimabias'),
+                        DB::raw('COALESCE(SUM(p.jumlah_rusak_b), 0) as totalbarangrusak'),
+                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0) - COALESCE(SUM(p.jumlah_rusak_b), 0)) as sisajumlahbelumditerimax'),
+                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0) - COALESCE(SUM(p.jumlah_rusak_b), 0)) as sisajumlahbelumditerima'),
                         DB::raw('\'0\' as itemrusak'))
                     ->leftJoin('penerimaan_r as p', function($join) {
                         $join->on('p.kdbarang', '=', 'orderpembelian_r.kdbarang')

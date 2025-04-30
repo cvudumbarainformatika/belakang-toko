@@ -49,7 +49,8 @@ class PenerimaanController extends Controller
                     ],
                     [
                         'noorder' => $request->noorder,
-                        'tgl' => date('Y-m-d H:i:s'),
+                        'nofaktur' => $request->nofaktur,
+                        'tgl_faktur' => $request->tgl,
                         'kdsupllier' => $request->kdsuplier,
                     ]
                 );
@@ -63,9 +64,12 @@ class PenerimaanController extends Controller
                         'nopenerimaan' => $nopenerimaan,
                         'noorder' => $request->noorder,
                         'kdbarang' => $request->kdbarang,
+                        'motif' => $request->motif,
                         'jumlah_b' => $request->jumlahpo,
                         'jumlah_k' => $jumlah_k,
                         'isi' => $request->isi,
+                        'jumlah_rusak_b' => $request->jumlahbarangrusak,
+                        'jumlah_datang_b' => $request->jumlah_datang_b,
                         'satuan_b' => $request->satuan_b,
                         'satuan_k' => $request->satuan_k,
                         'hargafaktur' => $request->hargafaktur,
@@ -76,11 +80,11 @@ class PenerimaanController extends Controller
                     ]
                 );
 
-                if($request->jumlahorder - $totalbarangdatang === 0){
+                // if($request->jumlahorder - $totalbarangdatang === 0){
                     $update = OrderPembelian_r::where('noorder', $request->noorder)->where('kdbarang', $request->kdbarang)->first();
-                    $update->flaging = 1;
+                    $update->flaging = $request->flagingx;
                     $update->save();
-                }
+                // }
 
                 $cekflagingrinci = OrderPembelian_r::where('noorder', $request->noorder)->where('flaging', null)->count();
                 if($cekflagingrinci === 0)
