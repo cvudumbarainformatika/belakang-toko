@@ -36,8 +36,16 @@ class HeaderPenjualan extends Model
     {
         return $this->hasOne(KeteranganPelanggan::class, 'header_penjualan_id', 'id');
     }
-    public function retur()
+    public function detailRetur()
     {
-        return $this->hasMany(DetailReturPenjualan::class, 'header_penjualan_id', 'id');
+        return $this->hasMany(DetailReturPenjualan::class, 'no_penjualan', 'no_penjualan');
+    }
+    public function headerRetur()
+    {
+        return $this->hasMany(HeaderReturPenjualan::class, 'no_penjualan', 'no_penjualan');
+    }
+    public function draftRetur()
+    {
+        return $this->hasOne(HeaderReturPenjualan::class, 'no_penjualan', 'no_penjualan');
     }
 }

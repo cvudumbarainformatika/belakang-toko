@@ -13,14 +13,13 @@ return new class extends Migration
     {
         Schema::create('detail_retur_penjualans', function (Blueprint $table) {
             $table->id();
-            $table->string('no_retur');
             $table->string('no_penjualan');
-            $table->unsignedBigInteger('detail_penjualan_id')->nullable();
-            $table->unsignedBigInteger('stok_id')->nullable();
-            $table->dateTime('tgl')->nullable();
+            $table->string('kodebarang');
             $table->double('jumlah', 24, 2)->default(0);
             $table->double('harga_jual', 24, 2)->default(0);
             $table->double('subtotal', 24, 2)->default(0);
+            $table->unsignedBigInteger('header_retur_penjualan_id')->nullable();
+            $table->unsignedBigInteger('detail_penjualan_id')->nullable();
             $table->timestamps();
         });
     }

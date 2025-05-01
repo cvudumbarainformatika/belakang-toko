@@ -8,4 +8,6 @@ Route::group([
     'prefix' => 'transaksi/retur'
 ], function () {
     Route::get('/list-penjualan', [ReturPenjualanController::class, 'index']);
+    Route::post('/simpan', [ReturPenjualanController::class, 'store']);
+    Route::post('/selesai', [ReturPenjualanController::class, 'selesai']);
 });
