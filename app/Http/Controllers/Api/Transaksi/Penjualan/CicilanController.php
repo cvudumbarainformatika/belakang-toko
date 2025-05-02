@@ -32,6 +32,9 @@ class CicilanController extends Controller
             'sales',
             'cicilan',
             'detail.masterBarang',
+            'headerRetur' => function ($q) {
+                $q->where('status', '!=', '');
+            },
         ])
             ->where('no_penjualan', 'like', '%' . request('q') . '%')
             ->when(
