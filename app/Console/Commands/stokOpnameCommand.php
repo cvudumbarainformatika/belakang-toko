@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Controllers\Api\Transaksi\Stok\StokOpnameController;
 use Illuminate\Console\Command;
 
 class stokOpnameCommand extends Command
@@ -37,6 +38,9 @@ class stokOpnameCommand extends Command
         // $controller = new SetNewStokController;
         // $data = $controller->PerbaikanStokPerDepo($depo);
         // info($data);
+        $data = StokOpnameController::storeMonthly();
+        $this->info($data['message']);
+        info($data['data']);
 
         // return Command::SUCCESS;
     }
