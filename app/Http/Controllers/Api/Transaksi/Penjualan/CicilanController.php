@@ -24,7 +24,10 @@ class CicilanController extends Controller
                     'headerPenjualan' => function ($q) {
                         $q->whereIn('flag', ['2', '3', '4'])
                             ->with([
-                                'cicilan'
+                                'cicilan',
+                                'headerRetur' => function ($q) {
+                                    $q->where('status', '!=', '');
+                                }
                             ]);
                     },
                 ]);
@@ -33,7 +36,10 @@ class CicilanController extends Controller
             'cicilan',
             'detail.masterBarang',
             'headerRetur' => function ($q) {
-                $q->where('status', '!=', '');
+                $q->where('status', '!=', '')
+                    ->with([
+                        'detail'
+                    ]);
             },
         ])
             ->where('no_penjualan', 'like', '%' . request('q') . '%')
@@ -78,6 +84,12 @@ class CicilanController extends Controller
             'sales',
             'cicilan',
             'detail.masterBarang',
+            'headerRetur' => function ($q) {
+                $q->where('status', '!=', '')
+                    ->with([
+                        'detail'
+                    ]);
+            },
         ]);
         return new JsonResponse([
             'message' => 'Berhasil Membawa Nota',
@@ -107,6 +119,12 @@ class CicilanController extends Controller
             'sales',
             'cicilan',
             'detail.masterBarang',
+            'headerRetur' => function ($q) {
+                $q->where('status', '!=', '')
+                    ->with([
+                        'detail'
+                    ]);
+            },
         ]);
         return new JsonResponse([
             'message' => $message,
@@ -219,6 +237,12 @@ class CicilanController extends Controller
             'sales',
             'cicilan',
             'detail.masterBarang',
+            'headerRetur' => function ($q) {
+                $q->where('status', '!=', '')
+                    ->with([
+                        'detail'
+                    ]);
+            },
         ]);
         return new JsonResponse([
             'message' => $message,
