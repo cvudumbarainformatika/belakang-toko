@@ -378,7 +378,7 @@ class PenjualanController extends Controller
                             'subtotal' => ($pengurangan * $item->harga_jual) - ($item->diskon * ($pengurangan / $item->jumlah)),
                         ]);
                         if (!$simpanRinciFifo) {
-                            throw new \Exception('Rincian Obat gagal disimpan');
+                            throw new \Exception('Rincian disimpan');
                         }
                         $stokItem->decrement('jumlah_k', $pengurangan);
                         $jumlahKeluar -= $pengurangan;
@@ -409,7 +409,7 @@ class PenjualanController extends Controller
                             'stok_id' => null,
                         ]);
                         if (!$simpanRinciFifo) {
-                            throw new \Exception('Rincian Obat gagal disimpan');
+                            throw new \Exception('Rincian gagal disimpan');
                         }
                         $detaiPengurangan[] = [
                             'stok' => $stok,
@@ -419,8 +419,9 @@ class PenjualanController extends Controller
                     }
                 } else {
                     $stok = stok::where('kdbarang', $item->kodebarang)->orderBy('id', 'desc')->first();
+                    $barang = Barang::where('kodebarang', $item->kodebarang)->first();
                     if (!$stok) {
-                        throw new \Exception('Belum pernah ada stok untuk barang ini');
+                        throw new \Exception('Belum pernah ada stok untuk barang ini ' . $barang->namabarang);
                     }
 
                     $simpanRinciFifo = DetailPenjualanFifo::updateOrCreate([
@@ -435,7 +436,7 @@ class PenjualanController extends Controller
                         'stok_id' => null,
                     ]);
                     if (!$simpanRinciFifo) {
-                        throw new \Exception('Rincian Obat gagal disimpan');
+                        throw new \Exception('Rincian gagal disimpan');
                     }
                 }
                 // return new JsonResponse([
