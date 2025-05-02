@@ -335,7 +335,7 @@ class PenjualanController extends Controller
                 'kembali' => $request->kembali,
                 'flag' => $request->cara_bayar,
             ]);
-            if ($request->dataPelanggan['nama'] != null) {
+            if ($request->dataPelanggan['nama'] != null && $request->pelanggan_id == null) {
                 KeteranganPelanggan::updateOrCreate(
                     [
                         'header_penjualan_id' => $data->id,
