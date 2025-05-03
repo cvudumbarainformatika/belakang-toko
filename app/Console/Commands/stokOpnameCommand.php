@@ -40,8 +40,9 @@ class stokOpnameCommand extends Command
         // info($data);
         $data = StokOpnameController::storeMonthly();
         $this->info($data['message']);
-        info($data['data']);
+        info($data['message']);
+        // info($data['data']);
 
-        // return Command::SUCCESS;
+        return Command::SUCCESS;
     }
 }

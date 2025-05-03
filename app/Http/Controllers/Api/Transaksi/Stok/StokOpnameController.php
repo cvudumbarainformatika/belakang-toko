@@ -15,13 +15,16 @@ class StokOpnameController extends Controller
     //
     public function index()
     {
-        $tglOpname = request('tgl_opname');
+        $bulan = request('bulan');
+        $tahun = request('tahun');
         $search = request('q');
         $kodebarang = Barang::select('kodebarang')->where('namabarang', 'like', '%' . $search . '%')->pluck('kodebarang')->toArray();
-        $raw = StokOpname::where('tgl_opname', 'like', $tglOpname . '%')
+        $raw = StokOpname::where('tgl_opname', 'like', $tahun . '-' . $bulan . '%')
             ->when(sizeof($kodebarang) > 0, function ($query) use ($kodebarang) {
-                return $query->whereIn('kodebarang', $kodebarang);
+                return $query->whereIn('kdbarang', $kodebarang);
             })
+            ->where('jumlah_k', '!=', 0)
+            ->with(['barang'])
             ->paginate(request('per_page'));
         $data['data'] = collect($raw)['data'];
         $data['meta'] = collect($raw)->except('data');
