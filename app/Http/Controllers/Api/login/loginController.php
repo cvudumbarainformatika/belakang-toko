@@ -43,7 +43,7 @@ class loginController extends Controller
     public function logout()
     {
         try {
-            auth()->logout();
+            auth('api')->logout();
 
             return response()->json([
                 'success' => true,
@@ -58,3 +58,4 @@ class loginController extends Controller
         }
     }
 }
+

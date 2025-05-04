@@ -27,8 +27,9 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::post('/login', [loginController::class, 'login']);
-Route::post('/logout', [loginController::class, 'logout']);
+Route::middleware('auth:api')->post('/logout', [loginController::class, 'logout']);
 
 Route::prefix('v1')->group(function () {
     RouteHelper::includeRouteFiles(__DIR__ . '/v1');
 });
+
