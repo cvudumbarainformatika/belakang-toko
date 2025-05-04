@@ -26,7 +26,8 @@ class loginController extends Controller
 
         $credentials = $request->only('username', 'password');
 
-        if (!$token = FacadesJWTAuth::attempt($credentials, ['exp' => Carbon::now()->addDays(7)->timestamp])) {
+        // Set token expiry to 3 hours
+        if (!$token = FacadesJWTAuth::attempt($credentials, ['exp' => Carbon::now()->addHours(3)->timestamp])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Username atau Password Anda salah'
@@ -36,7 +37,8 @@ class loginController extends Controller
         return response()->json([
             'success' => true,
             'user'    => auth()->user(),
-            'token'   => $token
+            'token'   => $token,
+            'expires_in' => 10800 // 3 hours in seconds (3*60*60)
         ], 200);
     }
 
@@ -58,4 +60,5 @@ class loginController extends Controller
         }
     }
 }
+
 
