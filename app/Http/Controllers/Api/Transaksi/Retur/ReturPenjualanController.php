@@ -31,6 +31,7 @@ class ReturPenjualanController extends Controller
             $x->where('no_retur', 'LIKE', '%' . $q . '%');
         })
             ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->orderBy('tgl', 'desc')
             ->paginate(request('per_page'));
 
         $data['data'] = collect($raw)['data'];
@@ -167,9 +168,13 @@ class ReturPenjualanController extends Controller
                     $q->where('status', '');
                 }
             ])->first();
+            $headRetur->load([
+                'detail.masterBarang',
+            ]);
             return new JsonResponse([
                 'message' => 'Data berhasil disimpan',
-                'data' => $request->all(),
+                'req' => $request->all(),
+                'data' => $headRetur,
                 'pj' => $pj,
                 'noretur' => $noretur,
             ], 200);
