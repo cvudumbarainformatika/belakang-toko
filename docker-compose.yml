@@ -5,11 +5,11 @@ services:
                 user: harry
                 uid: 1000
             context: ./
-            dockerfile: Dockerfile.swooledev
+            dockerfile: Dockerfile.dev
         working_dir: /var/www/
         restart: unless-stopped
-        ports:
-            - "8001:8000" # Menghindari konflik port dengan Nginx
+        # ports:
+        #     - "8001:8000" # Menghindari konflik port dengan Nginx
         environment:
             - COMPOSER_MEMORY_LIMIT=-1
         volumes:
@@ -39,14 +39,11 @@ services:
         image: nginx:alpine
         container_name: nginx_tokobangunan
         restart: unless-stopped
-        tty: true
-        links:
-            - app
         depends_on:
             - app
         ports:
             # - "8182:80"
-            - "8182:8000"
+            - "8182:80"
         volumes:
             - ./:/var/www
             - ./docker-compose/nginx:/etc/nginx/conf.d
