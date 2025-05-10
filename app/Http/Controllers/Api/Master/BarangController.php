@@ -142,9 +142,8 @@ class BarangController extends Controller
         ->simplePaginate(request('per_page'));
 
     // Transformasi data untuk menambahkan kartustok dan total
-   // Transformasi data untuk menambahkan kartustok dan total
     $data->getCollection()->transform(function ($item) use ($awal, $bulanSebelumnya, $akhirBulanSebelumnya) {
-        // Log data relasi untuk debugging
+        // Log data penerimaan dan penjualan untuk debugging
         Log::info('Data relasi', [
             'kodebarang' => $item->kodebarang,
             'penerimaan_count' => count($item->penerimaan),

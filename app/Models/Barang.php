@@ -34,7 +34,7 @@ class Barang extends Model
         return $this->hasOne(stok::class, 'kdbarang', 'kodebarang');
     }
 
-    public function penerimaan()
+    public function images()
     {
         return $this->hasMany(Penerimaan_r::class, 'kdbarang', 'kodebarang');
     }
@@ -63,5 +63,11 @@ class Barang extends Model
     public function scopeMostViewed($query, $limit = 10)
     {
         return $query->orderBy('view_count', 'desc')->limit($limit);
+    
+    }
+
+    public function penerimaan()
+    {
+        return $this->hasMany(Penerimaan_r::class, 'kdbarang', 'kodebarang');
     }
 }
