@@ -318,13 +318,13 @@ class BarangController extends Controller
             $kodebarang = $request->kodebarang;
         }
 
-        $namagabung = $request->brand . ' ' . $request->ukuran . ' ' . $request->namabarang . ' ' . $request->kualitas;
+        $namagabung = $request->brand . ' ' . $request->ukuran . ' ' . $request->namagabung . ' ' . $request->kualitas;
         $simpan = Barang::updateOrCreate(
         [
             'kodebarang' => $kodebarang
         ],
         [
-            'namagabung' => $request->namabarang,
+            'namagabung' => $request->namagabung,
             'namabarang' => $namagabung,
             'kualitas' => $request->kualitas,
             'brand' => $request->brand,
