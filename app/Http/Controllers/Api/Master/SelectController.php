@@ -49,4 +49,13 @@ class SelectController extends Controller
 
        return new JsonResponse($data);
     }
+
+    public function get_jenis()
+    {
+       $data = DB::table('jeniskeramiks')
+       ->select('nama', 'flaging')
+       ->get();
+
+       return new JsonResponse($data);
+    }
 }

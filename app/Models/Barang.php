@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Stok\stok;
+use App\Models\Transaksi\Penerimaan\Penerimaan_r;
+use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,5 +23,14 @@ class Barang extends Model
     public function stok()
     {
         return $this->hasOne(stok::class, 'kdbarang', 'kodebarang');
+    }
+
+    public function penerimaan()
+    {
+        return $this->hasMany(Penerimaan_r::class, 'kdbarang', 'kodebarang');
+    }
+    public function penjualan()
+    {
+        return $this->hasMany(DetailPenjualanFifo::class, 'kodebarang', 'kodebarang');
     }
 }
