@@ -16,6 +16,8 @@ services:
             - ./:/var/www
         networks:
             - harrynet
+        depends_on:
+            - db
 
     # swoole:
     #     build:
@@ -34,6 +36,24 @@ services:
     #         - ./:/var/www
     #     networks:
     #         - harrynet
+
+    db:
+        image: mysql/mysql-server:5.7
+        platform: linux/amd64
+        container_name: mysql_tokobangunan
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE:-local_laravel}
+            MYSQL_USER: ${DB_USERNAME:-local_developer}
+            MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+        ports:
+            - "3344:3306"
+        volumes:
+            - mysql_data:/var/lib/mysql
+            - ./docker-compose/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+        networks:
+            - harrynet
 
     nginx:
         image: nginx:alpine
@@ -62,6 +82,9 @@ services:
     #         interval: 10s
     #         timeout: 2s
     #         retries: 3
+
+volumes:
+    mysql_data:
 
 networks:
     harrynet:

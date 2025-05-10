@@ -29,7 +29,13 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::post('/login', [loginController::class, 'login']);
 Route::middleware('auth:api')->post('/logout', [loginController::class, 'logout']);
 
+// Routes v1 yang sudah ada
 Route::prefix('v1')->group(function () {
     RouteHelper::includeRouteFiles(__DIR__ . '/v1');
+});
+
+// Tambahkan routes v2
+Route::prefix('v2')->group(function () {
+    RouteHelper::includeRouteFiles(__DIR__ . '/v2');
 });
 
