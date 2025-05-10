@@ -22,8 +22,5 @@ composer:
 artisan:
 	docker compose exec app php artisan $(command)
 
-octane-reload:
-	docker compose exec app php artisan octane:reload
-
 test:
 	docker compose exec app php artisan test
