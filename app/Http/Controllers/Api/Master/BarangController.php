@@ -142,8 +142,9 @@ class BarangController extends Controller
         ->simplePaginate(request('per_page'));
 
     // Transformasi data untuk menambahkan kartustok dan total
+   // Transformasi data untuk menambahkan kartustok dan total
     $data->getCollection()->transform(function ($item) use ($awal, $bulanSebelumnya, $akhirBulanSebelumnya) {
-        // Log data penerimaan dan penjualan untuk debugging
+        // Log data relasi untuk debugging
         Log::info('Data relasi', [
             'kodebarang' => $item->kodebarang,
             'penerimaan_count' => count($item->penerimaan),
@@ -185,7 +186,7 @@ class BarangController extends Controller
             })
             ->where(function ($query) use ($awal) {
                 $query->where('penyesuaians.tgl', '<', $awal)
-                      ->orWhereNull('penyesuaians.tgl');
+                    ->orWhereNull('penyesuaians.tgl');
             })
             ->selectRaw('
                 COALESCE(SUM(penerimaan_r.jumlah_k), 0) + COALESCE(SUM(penyesuaians.jumlah_k), 0) -
