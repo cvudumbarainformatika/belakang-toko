@@ -101,7 +101,10 @@ class BarangController extends Controller
                           'barangs.isi'
                       );
             },
-            'penyesuaian',
+            'penyesuaian' => function ($query) use ($awal, $akhir) {
+                $query->whereBetween('penyesuaians.tgl', [$awal, $akhir])
+                      ->select('*');
+            },
             'stoks'
         ])
         ->select('barangs.*')
