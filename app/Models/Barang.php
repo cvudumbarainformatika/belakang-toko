@@ -6,6 +6,8 @@ use App\Models\Stok\Penyesuaian;
 use App\Models\Stok\stok;
 use App\Models\Transaksi\Penerimaan\Penerimaan_r;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
+use App\Models\Transaksi\Penjualan\DetailReturPenjualan;
+use App\Models\Transaksi\Penjualan\HeaderReturPenjualan;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -60,8 +62,12 @@ class Barang extends Model
     {
         return $this->hasMany(DetailPenjualanFifo::class, 'kodebarang', 'kodebarang');
     }
-     public function penyesuaian()
+    public function penyesuaian()
     {
         return $this->hasMany(Penyesuaian::class, 'kdbarang', 'kodebarang');
+    }
+    public function returbarang()
+    {
+        return $this->hasMany(DetailReturPenjualan::class, 'kodebarang', 'kodebarang');
     }
 }
