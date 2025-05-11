@@ -101,6 +101,21 @@ class BarangController extends Controller
                           'barangs.isi'
                       );
             },
+            'returbarang' => function ($query) use ($awal, $akhir) {
+                $query->join('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
+                      ->join('barangs', 'barangs.kodebarang', '=', 'detail_retur_penjualans.kodebarang')
+                      ->whereBetween('header_retur_penjualans.tgl', [$awal, $akhir])
+                      ->where('header_retur_penjualans.status', '=','1')
+                      ->select(
+                          'header_retur_penjualans.tgl as tanggal',
+                          'detail_retur_penjualans.kodebarang',
+                          'header_retur_penjualans.no_retur as notransaksi',
+                          'detail_retur_penjualans.jumlah as pengeluaran',
+                          'barangs.satuan_k',
+                          'barangs.satuan_b',
+                          'barangs.isi'
+                      );
+            },
             'penyesuaian' => function ($query) use ($awal, $akhir) {
                 $query->whereBetween('penyesuaians.tgl', [$awal, $akhir])
                       ->select('*');
@@ -146,6 +161,8 @@ class BarangController extends Controller
             ->leftJoin('penerimaan_h', 'penerimaan_h.nopenerimaan', '=', 'penerimaan_r.nopenerimaan')
             ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.kodebarang', '=', 'barangs.kodebarang')
             ->leftJoin('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.kodebarang', '=', 'barangs.kodebarang')
+            ->leftJoin('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
             ->leftJoin('penyesuaians', 'penyesuaians.kdbarang', '=', 'barangs.kodebarang')
             ->where(function ($query) use ($awal) {
                 $query->where('penerimaan_h.tgl_faktur', '<', $awal)
@@ -158,12 +175,18 @@ class BarangController extends Controller
                 })->orWhereNull('header_penjualans.tgl');
             })
             ->where(function ($query) use ($awal) {
+                $query->where(function ($subQuery) use ($awal) {
+                    $subQuery->where('header_retur_penjualans.tgl', '<', $awal)
+                           ->where('header_retur_penjualans.status', '=', '1');
+                })->orWhereNull('header_retur_penjualans.tgl');
+            })
+            ->where(function ($query) use ($awal) {
                 $query->where('penyesuaians.tgl', '<', $awal)
                     ->orWhereNull('penyesuaians.tgl');
             })
             ->selectRaw('
                 COALESCE(SUM(penerimaan_r.jumlah_k), 0) + COALESCE(SUM(penyesuaians.jumlah_k), 0) -
-                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) as saldo_awal
+                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) - COALESCE(SUM(detail_retur_penjualans.jumlah), 0) as saldo_awal
             ')
             ->first()
             ->saldo_awal ?? 0;
@@ -174,6 +197,8 @@ class BarangController extends Controller
             ->leftJoin('penerimaan_h', 'penerimaan_h.nopenerimaan', '=', 'penerimaan_r.nopenerimaan')
             ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.kodebarang', '=', 'barangs.kodebarang')
             ->leftJoin('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.kodebarang', '=', 'barangs.kodebarang')
+            ->leftJoin('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
             ->leftJoin('penyesuaians', 'penyesuaians.kdbarang', '=', 'barangs.kodebarang')
             ->where(function ($query) use ($akhirBulanSebelumnya) {
                 $query->where('penerimaan_h.tgl_faktur', '<=', $akhirBulanSebelumnya)
@@ -186,12 +211,18 @@ class BarangController extends Controller
                 })->orWhereNull('header_penjualans.tgl');
             })
             ->where(function ($query) use ($akhirBulanSebelumnya) {
+                $query->where(function ($subQuery) use ($akhirBulanSebelumnya) {
+                    $subQuery->where('header_retur_penjualans.tgl', '<=', $akhirBulanSebelumnya)
+                            ->where('header_retur_penjualans.status', '=', '1');
+                })->orWhereNull('header_retur_penjualans.tgl');
+            })
+            ->where(function ($query) use ($akhirBulanSebelumnya) {
                 $query->where('penyesuaians.tgl', '<=', $akhirBulanSebelumnya)
                     ->orWhereNull('penyesuaians.tgl');
             })
             ->selectRaw('
                 COALESCE(SUM(penerimaan_r.jumlah_k), 0) + COALESCE(SUM(penyesuaians.jumlah_k), 0) -
-                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) as saldo_akhir
+                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) - COALESCE(SUM(detail_retur_penjualans.jumlah), 0) as saldo_akhir
             ')
             ->first()
             ->saldo_akhir ?? 0;
@@ -232,6 +263,20 @@ class BarangController extends Controller
                 'satuan_k' => $penjualan->satuan_k,
                 'satuan_b' => $penjualan->satuan_b,
                 'isi' => floatval($penjualan->isi),
+            ];
+        }
+
+        // Tambahkan retur
+        foreach ($item->returbarang as $retur) {
+            $transaksi[] = [
+                'type' => 'retur',
+                'tanggal' => $retur->tanggal,
+                'notransaksi' => $retur->notransaksi,
+                'debit' => 0,
+                'kredit' => floatval($retur->pengeluaran),
+                'satuan_k' => $item->satuan_k,
+                'satuan_b' => $item->satuan_b,
+                'isi' => floatval($item->isi),
             ];
         }
 
