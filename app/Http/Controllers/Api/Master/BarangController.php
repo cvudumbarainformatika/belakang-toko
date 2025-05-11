@@ -184,10 +184,6 @@ class BarangController extends Controller
                 $query->where('penyesuaians.tgl', '<', $awal)
                     ->orWhereNull('penyesuaians.tgl');
             })
-            ->where(function ($query) use ($awal) {
-                $query->where('penyesuaians.tgl', '<', $awal)
-                    ->orWhereNull('penyesuaians.tgl');
-            })
             ->selectRaw('
                 COALESCE(SUM(penerimaan_r.jumlah_k), 0) + COALESCE(SUM(penyesuaians.jumlah_k), 0) -
                 COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) - COALESCE(SUM(detail_retur_penjualans.jumlah), 0) as saldo_awal
