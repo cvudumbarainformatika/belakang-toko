@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Stok\Penyesuaian;
 use App\Models\Stok\stok;
 use App\Models\Transaksi\Penerimaan\Penerimaan_r;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
@@ -32,5 +33,9 @@ class Barang extends Model
     public function penjualan()
     {
         return $this->hasMany(DetailPenjualanFifo::class, 'kodebarang', 'kodebarang');
+    }
+     public function penyesuaian()
+    {
+        return $this->hasMany(Penyesuaian::class, 'kdbarang', 'kodebarang');
     }
 }

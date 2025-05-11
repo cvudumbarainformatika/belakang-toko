@@ -101,6 +101,7 @@ class BarangController extends Controller
                           'barangs.isi'
                       );
             },
+            'penyesuaian',
             'stoks'
         ])
         ->select('barangs.*')
@@ -139,6 +140,7 @@ class BarangController extends Controller
             ->leftJoin('penerimaan_h', 'penerimaan_h.nopenerimaan', '=', 'penerimaan_r.nopenerimaan')
             ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.kodebarang', '=', 'barangs.kodebarang')
             ->leftJoin('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
+            ->leftJoin('penyesuaians', 'penyesuaians.kdbarang', '=', 'barangs.kodebarang')
             ->where(function ($query) use ($awal) {
                 $query->where('penerimaan_h.tgl_faktur', '<', $awal)
                       ->orWhereNull('penerimaan_h.tgl_faktur');
@@ -148,9 +150,13 @@ class BarangController extends Controller
                       ->whereIn('header_penjualans.flag', ['2', '3', '4', '5', '7'])
                       ->orWhereNull('header_penjualans.tgl');
             })
+            ->where(function ($query) use ($awal) {
+                $query->where('penyesuaians.tgl', '<', $awal)
+                      ->orWhereNull('penyesuaians.tgl');
+            })
             ->selectRaw('
                 COALESCE(SUM(penerimaan_r.jumlah_k), 0) -
-                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) as saldo_awal
+                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) + COALESCE(SUM(penyesuaians.jumlah_k), 0) as saldo_awal
             ')
             ->first()
             ->saldo_awal ?? 0;
@@ -161,6 +167,11 @@ class BarangController extends Controller
             ->leftJoin('penerimaan_h', 'penerimaan_h.nopenerimaan', '=', 'penerimaan_r.nopenerimaan')
             ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.kodebarang', '=', 'barangs.kodebarang')
             ->leftJoin('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
+            ->leftJoin('penyesuaians', 'penyesuaians.kdbarang', '=', 'barangs.kodebarang')
+            ->where(function ($query) use ($akhirBulanSebelumnya) {
+                $query->where('penyesuaians.tgl', '<=', $akhirBulanSebelumnya)
+                      ->orWhereNull('penyesuaians.tgl');
+            })
             ->where(function ($query) use ($akhirBulanSebelumnya) {
                 $query->where('penerimaan_h.tgl_faktur', '<=', $akhirBulanSebelumnya)
                       ->orWhereNull('penerimaan_h.tgl_faktur');
@@ -241,6 +252,24 @@ class BarangController extends Controller
                 'debit_b' => 0,
                 'kredit_b' => ROUND(floatval(($kredit / $penjualan->isi) ?? 0)),
                 'total_b' => ROUND(floatval(($saldoAwal + $akumulasi_debit - $akumulasi_kredit)/$penjualan->isi ?? 0)),
+            ];
+        }
+        foreach ($item->penyesuaian as $penyesuaian) {
+            $debit = floatval($penyesuaian->jumlah_k);
+            $kredit = 0;
+            $akumulasi_debit += $debit;
+            $kartustok[] = [
+                'tanggal' => $penyesuaian->tgl,
+                'notransaksi' => $penyesuaian->nopenyesuaian,
+                'debit' => $debit,
+                'kredit' => $kredit,
+                'total' => floatval($saldoAwal + $akumulasi_debit - $akumulasi_kredit),
+                'satuan_k' => $item->satuan_k,
+                'satuan_b' => $item->satuan_b,
+                'isi' => floatval($item->isi),
+                'debit_b' => ROUND(floatval(($debit / $item->isi) ?? 0)),
+                'kredit_b' => 0,
+                'total_b' => ROUND(floatval(($saldoAwal + $akumulasi_debit - $akumulasi_kredit)/$item->isi ?? 0)),
             ];
         }
 
