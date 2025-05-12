@@ -13,4 +13,5 @@ Route::group([
     // Route::post('/simpan-cicilan', [CicilanController::class, 'simpanCicilan']);
     Route::post('/simpan-cicilan', [CicilanController::class, 'newSimpanCicilan']);
     Route::post('/hapus-cicilan', [CicilanController::class, 'hapusCicilan']);
+    Route::post('/simpan-pelunasan', [CicilanController::class, 'simpanPelunasan']);
 });

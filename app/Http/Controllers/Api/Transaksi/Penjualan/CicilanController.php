@@ -12,6 +12,7 @@ use App\Models\User;
 use GuzzleHttp\Psr7\Header;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CicilanController extends Controller
 {
@@ -22,7 +23,7 @@ class CicilanController extends Controller
             'pelanggan' => function ($q) {
                 $q->with([
                     'headerPenjualan' => function ($q) {
-                        $q->whereIn('flag', ['2', '3', '4'])
+                        $q->whereIn('flag', ['2', '3', '4', '7'])
                             ->with([
                                 'cicilan',
                                 'headerRetur' => function ($q) {
@@ -46,7 +47,7 @@ class CicilanController extends Controller
             ->when(
                 request('flag') == 'semua',
                 function ($q) {
-                    $q->whereIn('flag', ['2', '3', '4']);
+                    $q->whereIn('flag', ['2', '3', '4', '7']);
                 },
                 function ($q) {
                     $q->where('flag', request('flag'));
@@ -148,50 +149,123 @@ class CicilanController extends Controller
         if ($request->jumlah <= 0) {
             return new JsonResponse(['message' => 'Jumlah Cicilan Tidak Boleh 0'], 410);
         }
-        // kemmbalikan flag menjadi 2
-        HeaderPenjualan::find($request->id)->update(['flag' => '2']);
-        $hutang = HeaderPenjualan::where('pelanggan_id', $request->pelanggan_id)->whereIn('flag', ['2', '3', '4'])->orderBy('no_penjualan', 'asc')->get();
-        $jumlahCicilan = $request->jumlah;
-        $headerCicilan = HeaderCicilan::create([
-            'pelanggan_id' => $request->pelanggan_id,
-            'sales_id' => $request->sales_id,
-            'jumlah' => $jumlahCicilan,
-            'tgl_bayar' => date('Y-m-d H:i:s'),
-        ]);
-        $dibayar = [];
-        foreach ($hutang as $key) {
-            if ($jumlahCicilan <= 0) break;
-            $cicilan = PembayaranCicilan::where('no_penjualan', $key->no_penjualan)->sum('jumlah');
-            $sisa = (float)$key->total - (float)$key->total_diskon - $cicilan;
-            $pengurang = min($sisa, $jumlahCicilan);
+        try {
+            DB::beginTransaction();
 
+            // kemmbalikan flag menjadi 2
+            HeaderPenjualan::find($request->id)->update(['flag' => '2']);
+            $hutang = HeaderPenjualan::where('pelanggan_id', $request->pelanggan_id)->whereIn('flag', ['2', '3', '4'])->orderBy('no_penjualan', 'asc')->get();
+            $jumlahCicilan = $request->jumlah;
+            $headerCicilan = HeaderCicilan::create([
+                'pelanggan_id' => $request->pelanggan_id,
+                'sales_id' => $request->sales_id,
+                'cara_bayar' => $request->cara_bayar,
+                'jumlah' => $jumlahCicilan,
+                'tgl_bayar' => date('Y-m-d H:i:s'),
+            ]);
+            $dibayar = [];
+            foreach ($hutang as $key) {
+                if ($jumlahCicilan <= 0) break;
+                $cicilan = PembayaranCicilan::where('no_penjualan', $key->no_penjualan)->sum('jumlah');
+                $sisa = (float)$key->total - (float)$key->bayar - $cicilan;
+                $pengurang = min($sisa, $jumlahCicilan);
+
+                PembayaranCicilan::create([
+                    'no_penjualan' => $key->no_penjualan,
+                    'tgl_bayar' => $headerCicilan->tgl_bayar,
+                    'header_ciclan_id' => $headerCicilan->id,
+                    'jumlah' => $pengurang,
+                ]);
+                if ($sisa <= $jumlahCicilan) {
+                    $dibayar[] = [
+                        'key' => $key,
+                        'pengurang' => $pengurang
+                    ];
+                    $key->update(['flag' => '5']);
+                } else {
+                    $dibayar[] = [
+                        'key' => $key,
+                        'pengurang' => $pengurang
+                    ];
+                    $key->update(['flag' => '3']);
+                }
+                $jumlahCicilan -= $pengurang;
+            }
+            DB::commit();
+            return new JsonResponse([
+                'message' => 'Berhasil Menyimpan Cicilan',
+                'hutang' => $hutang,
+                'dibayar' => $dibayar,
+                'req' => $request->all(),
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return new JsonResponse([
+                'message' => 'Terjadi Kesalahan ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+
+            ], 410);
+        }
+    }
+
+    public function simpanPelunasan(Request $request)
+    {
+
+        try {
+            DB::beginTransaction();
+
+            // bisa jadi ada pelanggan, bisa jadi tidak ada
+            $jumlahBayar = $request->jumlah;
+            $headerCicilan = HeaderCicilan::create([
+                'pelanggan_id' => $request->pelanggan_id,
+                'sales_id' => $request->sales_id,
+                'cara_bayar' => $request->cara_bayar,
+                'jumlah' => $jumlahBayar,
+                'tgl_bayar' => date('Y-m-d H:i:s'),
+            ]);
+            if (!$headerCicilan) {
+                return new JsonResponse([
+                    'message' => 'Terjadi Kesalahan, Data tidak tersimpan '
+                ], 410);
+            }
             PembayaranCicilan::create([
-                'no_penjualan' => $key->no_penjualan,
+                'no_penjualan' => $request->no_penjualan,
                 'tgl_bayar' => $headerCicilan->tgl_bayar,
                 'header_ciclan_id' => $headerCicilan->id,
-                'jumlah' => $pengurang,
+                'jumlah' => $jumlahBayar,
             ]);
-            if ($sisa <= $jumlahCicilan) {
-                $dibayar[] = [
-                    'key' => $key,
-                    'pengurang' => $pengurang
-                ];
-                $key->update(['flag' => '5']);
-            } else {
-                $dibayar[] = [
-                    'key' => $key,
-                    'pengurang' => $pengurang
-                ];
-                $key->update(['flag' => '3']);
+
+            $headerPenjualan = HeaderPenjualan::find($request->id);
+            if (!$headerPenjualan) {
+                return new JsonResponse([
+                    'message' => 'Terjadi Kesalahan, Data penjualan tidak ditemukan '
+                ], 410);
             }
-            $jumlahCicilan -= $pengurang;
+            $jumlah = (float)$headerPenjualan->total - (float)$headerPenjualan->bayar;
+            if ((float) $jumlah > (float) $jumlahBayar) {
+                $headerPenjualan->update([
+                    'flag' => '3',
+                ]);
+            } else {
+                $headerPenjualan->update([
+                    'flag' => '5',
+                ]);
+            }
+            DB::commit();
+            return new JsonResponse([
+                'message' => 'Berhasil Menyimpan Pelunasan',
+                'req' => $request->all(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return new JsonResponse([
+                'message' => 'Terjadi Kesalahan ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+
+            ], 410);
         }
-        return new JsonResponse([
-            'message' => 'Berhasil Menyimpan Cicilan',
-            'hutang' => $hutang,
-            'dibayar' => $dibayar,
-            'req' => $request->all(),
-        ], 200);
     }
     public function simpanCicilan(Request $request)
     {
