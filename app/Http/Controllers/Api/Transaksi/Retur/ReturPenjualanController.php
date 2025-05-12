@@ -226,7 +226,7 @@ class ReturPenjualanController extends Controller
                         // stok
                         $stok = stok::find($detail->stok_id);
                         if ($stok) {
-                            $jumlahStok = $stok->jumlah + $returBaru;
+                            $jumlahStok = (int)$stok->jumlah_k + (int)$returBaru;
                             $stok->update([
                                 'jumlah_k' => $jumlahStok,
                             ]);
