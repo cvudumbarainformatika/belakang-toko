@@ -45,6 +45,14 @@ class loginController extends Controller
     public function logout()
     {
         try {
+            // Pastikan user terautentikasi sebelum logout
+            if (!auth('api')->check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+
             auth('api')->logout();
 
             return response()->json([
@@ -55,10 +63,11 @@ class loginController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to logout'
+                'message' => 'Failed to logout: ' . $e->getMessage()
             ], 500);
         }
     }
 }
+
 
 
