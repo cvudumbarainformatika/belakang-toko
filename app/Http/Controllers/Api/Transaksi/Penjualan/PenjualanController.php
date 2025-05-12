@@ -333,7 +333,8 @@ class PenjualanController extends Controller
                 'pelanggan_id' => $request->pelanggan_id,
                 'bayar' => $request->bayar,
                 'kembali' => $request->kembali,
-                'flag' => $request->cara_bayar,
+                'flag' => $request->flag,
+                'cara_bayar' => $request->cara_bayar,
             ]);
             if ($request->dataPelanggan['nama'] != null && $request->pelanggan_id == null) {
                 KeteranganPelanggan::updateOrCreate(
