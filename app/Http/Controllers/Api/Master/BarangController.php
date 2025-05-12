@@ -6,9 +6,11 @@ use App\Helpers\FormatingHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Barang;
 use App\Models\Imagebarang;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BarangController extends Controller
 {
@@ -31,28 +33,355 @@ class BarangController extends Controller
         //     ->orderBy('barangs.id', 'desc')
         //     ->simplePaginate(request('per_page'));
 
-        $data = Barang::whereNull('barangs.flaging')
-            ->when(request('q'), function ($query) {
-                $query->where(function ($q) {
-                    $q->where('barangs.namabarang', 'like', '%' . request('q') . '%')
-                    ->orWhere('barangs.kodebarang', 'like', '%' . request('q') . '%');
-                });
-            })
-            ->leftJoin('imagebarangs', function ($join) {
-                $join->on('barangs.kodebarang', '=', 'imagebarangs.kodebarang')
-                    ->where('imagebarangs.flag_thumbnail', '=', 1); // Hanya ambil gambar dengan flag_thumbnail = 1
-            })
-            ->select('barangs.*')
-            ->selectRaw('
-                GROUP_CONCAT(imagebarangs.gambar) as image,
-                GROUP_CONCAT(imagebarangs.flag_thumbnail) as flag_thumbnail
-            ')
-            ->with('rincians')
-            ->groupBy('barangs.id') // Group by primary key
-            ->orderBy('barangs.id', 'desc')
-            ->simplePaginate(request('per_page'));
 
-        return new JsonResponse($data);
+   // Tentukan tahun dan bulan, default ke saat ini jika tidak ada
+    $tahun = request('tahun') ?? Carbon::now()->format('Y');
+    $bulan = request('bulan') ?? Carbon::now()->format('m');
+
+    // Hitung awal dan akhir bulan
+    $awal = Carbon::createFromFormat('Y-m-d', "$tahun-$bulan-01")->startOfMonth()->format('Y-m-d');
+    $akhir = Carbon::createFromFormat('Y-m-d', $awal)->endOfMonth()->format('Y-m-d');
+
+    // Hitung awal bulan sebelumnya untuk validasi saldo akhir
+    $bulanSebelumnya = Carbon::createFromFormat('Y-m-d', "$tahun-$bulan-01")->subMonth()->startOfMonth()->format('Y-m-d');
+    $akhirBulanSebelumnya = Carbon::createFromFormat('Y-m-d', $bulanSebelumnya)->endOfMonth()->format('Y-m-d');
+
+    // Log rentang tanggal untuk debugging
+    Log::info('Rentang tanggal', [
+        'awal' => $awal,
+        'akhir' => $akhir,
+        'bulan_sebelumnya' => $bulanSebelumnya,
+        'akhir_bulan_sebelumnya' => $akhirBulanSebelumnya,
+        'tahun' => $tahun,
+        'bulan' => $bulan
+    ]);
+
+    $data = Barang::whereNull('barangs.flaging')
+        ->when(request('q'), function ($query) {
+            $query->where(function ($q) {
+                $q->where('barangs.namabarang', 'like', '%' . request('q') . '%')
+                  ->orWhere('barangs.kodebarang', 'like', '%' . request('q') . '%');
+            });
+        })
+        ->leftJoin('imagebarangs', function ($join) {
+            $join->on('barangs.kodebarang', '=', 'imagebarangs.kodebarang')
+                 ->where('imagebarangs.flag_thumbnail', '=', 1);
+        })
+        ->leftJoin('stoks', function ($join) {
+            $join->on('barangs.kodebarang', '=', 'stoks.kdbarang')
+                 ->where('stoks.jumlah_k', '!=', 0);
+        })
+        ->with([
+            'rincians',
+            'penerimaan' => function ($query) use ($awal, $akhir) {
+                $query->join('penerimaan_h', 'penerimaan_h.nopenerimaan', '=', 'penerimaan_r.nopenerimaan')
+                      ->whereBetween('penerimaan_h.tgl_faktur', [$awal, $akhir])
+                      ->select(
+                          'penerimaan_h.tgl_faktur as tanggal',
+                          'penerimaan_r.kdbarang',
+                          'penerimaan_r.nopenerimaan as notransaksi',
+                          'penerimaan_r.jumlah_k as penerimaan',
+                          'penerimaan_r.isi',
+                          'penerimaan_r.satuan_k',
+                          'penerimaan_r.satuan_b'
+                      );
+            },
+            'penjualan' => function ($query) use ($awal, $akhir) {
+                $query->join('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
+                      ->join('barangs', 'barangs.kodebarang', '=', 'detail_penjualan_fifos.kodebarang')
+                      ->whereIn('header_penjualans.flag', ['2', '3', '4', '5', '7'])
+                      ->whereBetween('header_penjualans.tgl', [$awal, $akhir])
+                      ->select(
+                          'header_penjualans.tgl as tanggal',
+                          'detail_penjualan_fifos.kodebarang',
+                          'detail_penjualan_fifos.no_penjualan as notransaksi',
+                          'detail_penjualan_fifos.jumlah as pengeluaran',
+                          'barangs.satuan_k',
+                          'barangs.satuan_b',
+                          'barangs.isi'
+                      );
+            },
+            'returbarang' => function ($query) use ($awal, $akhir) {
+                $query->join('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
+                      ->join('barangs', 'barangs.kodebarang', '=', 'detail_retur_penjualans.kodebarang')
+                      ->whereBetween('header_retur_penjualans.tgl', [$awal, $akhir])
+                      ->where('header_retur_penjualans.status', '=','1')
+                      ->select(
+                          'header_retur_penjualans.tgl as tanggal',
+                          'detail_retur_penjualans.kodebarang',
+                          'header_retur_penjualans.no_retur as notransaksi',
+                          'detail_retur_penjualans.jumlah as pengeluaran',
+                          'barangs.satuan_k',
+                          'barangs.satuan_b',
+                          'barangs.isi'
+                      );
+            },
+            'penyesuaian' => function ($query) use ($awal, $akhir) {
+                $query->whereBetween('penyesuaians.tgl', [$awal, $akhir])
+                      ->select('*');
+            },
+            'stoks'
+        ])
+        ->select('barangs.*')
+        ->selectRaw('
+            GROUP_CONCAT(imagebarangs.gambar) as image,
+            GROUP_CONCAT(imagebarangs.flag_thumbnail) as flag_thumbnail,
+            COALESCE(SUM(CASE WHEN stoks.jumlah_k != 0 THEN stoks.jumlah_k ELSE 0 END), 0) as stok_kecil,
+            COALESCE(ROUND(SUM(CASE WHEN stoks.isi != 0 THEN stoks.jumlah_k / stoks.isi ELSE 0 END), 2), 0) as stok_besar
+        ')
+        ->when(request('minim_stok'), function ($query) {
+            $query->havingRaw('
+                CASE
+                    WHEN COALESCE(SUM(CASE WHEN stoks.jumlah_k != 0 THEN stoks.jumlah_k ELSE 0 END), 0) <= barangs.minim_stok THEN 1
+                    WHEN COALESCE(SUM(CASE WHEN stoks.jumlah_k != 0 THEN stoks.jumlah_k ELSE 0 END), 0) > barangs.minim_stok THEN 2
+                END = ?', [request('minim_stok')]
+            );
+        })
+        ->groupBy('barangs.id')
+        ->orderBy('barangs.id', 'desc')
+        ->simplePaginate(request('per_page'));
+
+    // Transformasi data untuk menambahkan kartustok dan total
+   // Transformasi data untuk menambahkan kartustok dan total
+    $data->getCollection()->transform(function ($item) use ($awal, $bulanSebelumnya, $akhirBulanSebelumnya) {
+        // Log data relasi untuk debugging
+        Log::info('Data relasi', [
+            'kodebarang' => $item->kodebarang,
+            'penerimaan_count' => count($item->penerimaan),
+            'penerimaan' => $item->penerimaan->toArray(),
+            'penjualan_count' => count($item->penjualan),
+            'penjualan' => $item->penjualan->toArray(),
+            'penyesuaian_count' => count($item->penyesuaian),
+            'penyesuaian' => $item->penyesuaian->toArray(),
+        ]);
+
+        // Hitung saldo awal (sebelum rentang tanggal)
+        $saldoAwal = Barang::where('barangs.kodebarang', $item->kodebarang)
+            ->leftJoin('penerimaan_r', 'penerimaan_r.kdbarang', '=', 'barangs.kodebarang')
+            ->leftJoin('penerimaan_h', 'penerimaan_h.nopenerimaan', '=', 'penerimaan_r.nopenerimaan')
+            ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.kodebarang', '=', 'barangs.kodebarang')
+            ->leftJoin('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.kodebarang', '=', 'barangs.kodebarang')
+            ->leftJoin('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
+            ->leftJoin('penyesuaians', 'penyesuaians.kdbarang', '=', 'barangs.kodebarang')
+            ->where(function ($query) use ($awal) {
+                $query->where('penerimaan_h.tgl_faktur', '<', $awal)
+                    ->orWhereNull('penerimaan_h.tgl_faktur');
+            })
+            ->where(function ($query) use ($awal) {
+                $query->where(function ($subQuery) use ($awal) {
+                    $subQuery->where('header_penjualans.tgl', '<', $awal)
+                            ->whereIn('header_penjualans.flag', ['2', '3', '4', '5', '7']);
+                })->orWhereNull('header_penjualans.tgl');
+            })
+            ->where(function ($query) use ($awal) {
+                $query->where(function ($subQuery) use ($awal) {
+                    $subQuery->where('header_retur_penjualans.tgl', '<', $awal)
+                           ->where('header_retur_penjualans.status', '=', '1');
+                })->orWhereNull('header_retur_penjualans.tgl');
+            })
+            ->where(function ($query) use ($awal) {
+                $query->where('penyesuaians.tgl', '<', $awal)
+                    ->orWhereNull('penyesuaians.tgl');
+            })
+            ->selectRaw('
+                COALESCE(SUM(penerimaan_r.jumlah_k), 0) + COALESCE(SUM(penyesuaians.jumlah_k), 0) -
+                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) - COALESCE(SUM(detail_retur_penjualans.jumlah), 0) as saldo_awal
+            ')
+            ->first()
+            ->saldo_awal ?? 0;
+
+        // Hitung saldo akhir bulan sebelumnya untuk validasi
+        $saldoAkhirBulanSebelumnya = Barang::where('barangs.kodebarang', $item->kodebarang)
+            ->leftJoin('penerimaan_r', 'penerimaan_r.kdbarang', '=', 'barangs.kodebarang')
+            ->leftJoin('penerimaan_h', 'penerimaan_h.nopenerimaan', '=', 'penerimaan_r.nopenerimaan')
+            ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.kodebarang', '=', 'barangs.kodebarang')
+            ->leftJoin('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.kodebarang', '=', 'barangs.kodebarang')
+            ->leftJoin('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
+            ->leftJoin('penyesuaians', 'penyesuaians.kdbarang', '=', 'barangs.kodebarang')
+            ->where(function ($query) use ($akhirBulanSebelumnya) {
+                $query->where('penerimaan_h.tgl_faktur', '<=', $akhirBulanSebelumnya)
+                    ->orWhereNull('penerimaan_h.tgl_faktur');
+            })
+            ->where(function ($query) use ($akhirBulanSebelumnya) {
+                $query->where(function ($subQuery) use ($akhirBulanSebelumnya) {
+                    $subQuery->where('header_penjualans.tgl', '<=', $akhirBulanSebelumnya)
+                            ->whereIn('header_penjualans.flag', ['2', '3', '4', '5', '7']);
+                })->orWhereNull('header_penjualans.tgl');
+            })
+            ->where(function ($query) use ($akhirBulanSebelumnya) {
+                $query->where(function ($subQuery) use ($akhirBulanSebelumnya) {
+                    $subQuery->where('header_retur_penjualans.tgl', '<=', $akhirBulanSebelumnya)
+                            ->where('header_retur_penjualans.status', '=', '1');
+                })->orWhereNull('header_retur_penjualans.tgl');
+            })
+            ->where(function ($query) use ($akhirBulanSebelumnya) {
+                $query->where('penyesuaians.tgl', '<=', $akhirBulanSebelumnya)
+                    ->orWhereNull('penyesuaians.tgl');
+            })
+            ->selectRaw('
+                COALESCE(SUM(penerimaan_r.jumlah_k), 0) + COALESCE(SUM(penyesuaians.jumlah_k), 0) -
+                COALESCE(SUM(detail_penjualan_fifos.jumlah), 0) - COALESCE(SUM(detail_retur_penjualans.jumlah), 0) as saldo_akhir
+            ')
+            ->first()
+            ->saldo_akhir ?? 0;
+
+        // Log saldo untuk debugging
+        Log::info('Saldo', [
+            'kodebarang' => $item->kodebarang,
+            'saldo_awal' => $saldoAwal,
+            'saldo_akhir_bulan_sebelumnya' => $saldoAkhirBulanSebelumnya,
+            'is_consistent' => abs($saldoAwal - $saldoAkhirBulanSebelumnya) < 0.0001
+        ]);
+
+        // Gabungkan semua transaksi ke satu array
+        $transaksi = [];
+
+        // Tambahkan penerimaan
+        foreach ($item->penerimaan as $penerimaan) {
+            $transaksi[] = [
+                'type' => 'penerimaan',
+                'tanggal' => $penerimaan->tanggal,
+                'notransaksi' => $penerimaan->notransaksi,
+                'debit' => floatval($penerimaan->penerimaan),
+                'kredit' => 0,
+                'satuan_k' => $penerimaan->satuan_k,
+                'satuan_b' => $penerimaan->satuan_b,
+                'isi' => floatval($penerimaan->isi),
+            ];
+        }
+
+        // Tambahkan penjualan
+        foreach ($item->penjualan as $penjualan) {
+            $transaksi[] = [
+                'type' => 'penjualan',
+                'tanggal' => $penjualan->tanggal,
+                'notransaksi' => $penjualan->notransaksi,
+                'debit' => 0,
+                'kredit' => floatval($penjualan->pengeluaran),
+                'satuan_k' => $penjualan->satuan_k,
+                'satuan_b' => $penjualan->satuan_b,
+                'isi' => floatval($penjualan->isi),
+            ];
+        }
+
+        // Tambahkan retur
+        foreach ($item->returbarang as $retur) {
+            $transaksi[] = [
+                'type' => 'retur',
+                'tanggal' => $retur->tanggal,
+                'notransaksi' => $retur->notransaksi,
+                'debit' => 0,
+                'kredit' => floatval($retur->pengeluaran),
+                'satuan_k' => $item->satuan_k,
+                'satuan_b' => $item->satuan_b,
+                'isi' => floatval($item->isi),
+            ];
+        }
+
+        // Tambahkan penyesuaian
+        foreach ($item->penyesuaian as $penyesuaian) {
+            $debit = floatval($penyesuaian->jumlah_k);
+            $kredit = 0;
+            // Jika nilai penyesuaian berkurang (negatif) maka menjadi kredit dengan nilai positif
+            if ($debit < 0) {
+                $kredit = abs($debit);
+                $debit = 0;
+            }
+            $transaksi[] = [
+                'type' => 'penyesuaian',
+                'tanggal' => $penyesuaian->tgl,
+                'notransaksi' => $penyesuaian->nopenyesuaian,
+                'debit' => $debit,
+                'kredit' => $kredit,
+                'satuan_k' => $item->satuan_k,
+                'satuan_b' => $item->satuan_b,
+                'isi' => floatval($item->isi),
+            ];
+        }
+
+        // Urutkan transaksi berdasarkan tanggal
+        usort($transaksi, function ($a, $b) {
+            return strtotime($a['tanggal']) <=> strtotime($b['tanggal']);
+        });
+
+        // Buat kartustok
+        $kartustok = [];
+        $akumulasi_debit = $saldoAwal;
+        $akumulasi_kredit = 0;
+
+        // Tambahkan entri saldo awal
+        $kartustok[] = [
+            'tanggal' => $awal,
+            'notransaksi' => 'SALDO AWAL',
+            'debit' => floatval($saldoAwal),
+            'kredit' => 0,
+            'total' => floatval($saldoAwal),
+            'satuan_k' => $item->satuan_k ?? '',
+            'satuan_b' => $item->satuan_b ?? '',
+            'isi' => floatval($item->isi ?? 0),
+            'debit_b' => round(floatval($saldoAwal / ($item->isi ?? 1)), 2),
+            'kredit_b' => 0,
+            'total_b' => round(floatval($saldoAwal / ($item->isi ?? 1)), 2),
+        ];
+
+        // Proses transaksi
+        foreach ($transaksi as $trx) {
+            $akumulasi_debit += $trx['debit'];
+            $akumulasi_kredit += $trx['kredit'];
+            $total = $saldoAwal + $akumulasi_debit - $akumulasi_kredit;
+
+            $kartustok[] = [
+                'tanggal' => $trx['tanggal'],
+                'notransaksi' => $trx['notransaksi'],
+                'debit' => $trx['debit'],
+                'kredit' => $trx['kredit'],
+                'total' => floatval($total),
+                'satuan_k' => $trx['satuan_k'],
+                'satuan_b' => $trx['satuan_b'],
+                'isi' => $trx['isi'],
+                'debit_b' => round(floatval($trx['debit'] / ($trx['isi'] ?? 1)), 2),
+                'kredit_b' => round(floatval($trx['kredit'] / ($trx['isi'] ?? 1)), 2),
+                'total_b' => round(floatval($total / ($trx['isi'] ?? 1)), 2),
+            ];
+        }
+
+        // Log kartustok setelah penggabungan
+        Log::info('Kartustok', ['kodebarang' => $item->kodebarang, 'kartustok' => $kartustok]);
+
+        // Hitung total debit dan kredit untuk bulan ini (tidak termasuk saldo awal)
+        $totalDebit = array_sum(array_column(array_slice($kartustok, 1), 'debit'));
+        $totalKredit = array_sum(array_column(array_slice($kartustok, 1), 'kredit'));
+        $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+
+        // Log saldo akhir untuk debugging
+        Log::info('Saldo akhir', [
+            'kodebarang' => $item->kodebarang,
+            'saldo_akhir' => $saldoAkhir
+        ]);
+
+        // Tambahkan kartustok dan total ke item
+        $item->kartustok = $kartustok;
+        $item->total = [
+            'saldo_awal' => floatval($saldoAwal),
+            'total_debit' => floatval($totalDebit),
+            'total_kredit' => floatval($totalKredit),
+            'saldo_akhir' => floatval($saldoAkhir),
+            'total_debitbesar' => round(floatval($totalDebit / ($item->isi ?? 1)), 2),
+            'total_kreditbesar' => round(floatval($totalKredit / ($item->isi ?? 1)), 2),
+            'saldo_akhirbesar' => round(floatval($saldoAkhir / ($item->isi ?? 1)), 2),
+        ];
+
+        // Hapus relasi asli untuk mengurangi ukuran respons
+        unset($item->penerimaan);
+        unset($item->penjualan);
+        unset($item->penyesuaian);
+
+        return $item;
+    });
+
+    return new JsonResponse($data);
     }
 
     public function simpanbarang(Request $request)
@@ -88,16 +417,17 @@ class BarangController extends Controller
             $kodebarang = $request->kodebarang;
         }
 
-        $namagabung = $request->brand . ' ' . $request->ukuran . ' ' . $request->namabarang . ' ' . $request->kualitas;
+        $namagabung = $request->brand . ' ' . $request->ukuran . ' ' . $request->namagabung . ' ' . $request->kualitas;
         $simpan = Barang::updateOrCreate(
         [
             'kodebarang' => $kodebarang
         ],
         [
-            'namagabung' => $request->namabarang,
+            'namagabung' => $request->namagabung,
             'namabarang' => $namagabung,
             'kualitas' => $request->kualitas,
             'brand' => $request->brand,
+            'kodejenis' => $request->kodejenis,
             'seri' => $request->seri,
             'satuan_b' => $request->satuan_b,
             'satuan_k' => $request->satuan_k,
@@ -106,6 +436,7 @@ class BarangController extends Controller
             'hargajual1' => $request->hargajual1,
             'hargajual2' => $request->hargajual2,
             'hargabeli' => $request->hargabeli,
+            'minim_stok' => $request->minim_stok,
             'ukuran' => $request->ukuran,
         ]);
         if ($request->has('rincians')) {
