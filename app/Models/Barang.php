@@ -70,4 +70,9 @@ class Barang extends Model
     {
         return $this->hasMany(DetailReturPenjualan::class, 'kodebarang', 'kodebarang');
     }
+    public function images()
+    {
+        return $this->hasMany(Imagebarang::class, 'kodebarang', 'kodebarang');
+
+    }
 }
