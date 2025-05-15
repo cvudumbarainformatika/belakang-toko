@@ -22,4 +22,8 @@ class Barang extends Model
     {
         return $this->hasOne(stok::class, 'kdbarang', 'kodebarang');
     }
+    public function images()
+    {
+        return $this->hasMany(Imagebarang::class, 'kodebarang', 'kodebarang');
+    }
 }
