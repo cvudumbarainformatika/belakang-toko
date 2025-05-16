@@ -113,12 +113,7 @@ class ProductController extends Controller
                         $query->orderBy('created_at', 'desc');
                 }
 
-                // Select only necessary fields for better performance
-                $query->select([
-                    'id', 'kodebarang', 'namabarang', 'namagabung', 'kualitas', 
-                    'brand', 'satuan_b', 'satuan_k', 'kategori','isi', 'hargajual1',
-                    'hargajual2', 'ukuran','kodejenis',
-                ]);
+                self::selectQuery($query);
 
                 // Use simplePaginate for better performance
                 $products = $query->simplePaginate($itemsPerPage, ['*'], 'page', $currentPage);
@@ -140,5 +135,38 @@ class ProductController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function productById($id)
+    {
+        $query = Barang::query();
+            self::selectQuery($query);
+        $data = $query->find($id);
+
+        return response()->json($data);
+    }
+
+    public static function selectQuery($query)
+    {
+       $query->select(
+            'id', 'kodebarang', 
+            'namabarang AS name', 
+            'namagabung', 
+            'kualitas', 
+            'brand', 
+            'satuan_b', 
+            'satuan_k', 
+            'kategori AS category', 
+            'isi', 
+            'hargajual1 AS price',
+            'hargajual2', 
+            'ukuran', 
+            'kodejenis',
+            'image'
+        );
+
+
+        $query->with(['images']);
+        return $query;
     }
 }
