@@ -158,7 +158,7 @@ class ProductController extends Controller
         //     self::selectQuery($query);
         // $data = $query->findOrFail($id);
 
-        $list = Wishlist::create([
+        $list = Wishlist::firstOrCreate([
             'barang_id'=> $id,
             'user_id'=> Auth::user()->id
         ]);
