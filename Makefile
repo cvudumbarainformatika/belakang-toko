@@ -24,3 +24,10 @@ artisan:
 
 test:
 	docker compose exec app php artisan test
+
+
+
+
+#redis
+redis-cli:
+	docker compose exec redis redis-cli

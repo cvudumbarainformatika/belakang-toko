@@ -12,7 +12,7 @@ Route::group([
 
     Route::middleware('auth:sanctum')->group(function () {
        // Route untuk mendapatkan data user yang sedang login
-        Route::get('/me', [SocialiteController::class, 'me']);
         Route::get('/by/{id}', [ProductController::class, 'productById']);
+        Route::get('/like/{id}', [ProductController::class, 'productLike']);
     });
 });
