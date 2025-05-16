@@ -51,6 +51,15 @@ class Barang extends Model
         return $this->hasMany(DetailReturPenjualan::class, 'kodebarang', 'kodebarang');
     }
 
+    public function views()
+    {
+       return $this->hasOne(BarangView::class);
+    }
+    public function likes()
+    {
+       return $this->hasOne(BarangLike::class);
+    }
+
     public function scopeMostViewed($query, $limit = 10)
     {
         return $query->orderBy('view_count', 'desc')->limit($limit);

@@ -1,0 +1,11 @@
+<?php
+
+use App\Http\Controllers\Api\v2\Product\CartController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware('auth:sanctum')->prefix('cart')->group(function () {
+    Route::get('/', [CartController::class, 'index']);
+    Route::post('/', [CartController::class, 'store']);
+    Route::put('/{barang}', [CartController::class, 'update']);
+    Route::delete('/{barang}', [CartController::class, 'destroy']);
+});

@@ -25,6 +25,9 @@ artisan:
 test:
 	docker compose exec app php artisan test
 
+refresh:
+	docker compose exec app php artisan config:cache && docker compose exec app php artisan route:cache && docker compose exec app php artisan cache:clear
+
 
 
 
