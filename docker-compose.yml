@@ -18,24 +18,7 @@ services:
             - harrynet
         depends_on:
             - db
-
-    # swoole:
-    #     build:
-    #         args:
-    #             user: harry
-    #             uid: 1000
-    #         context: ./
-    #         dockerfile: Dockerfile.swooledev
-    #     working_dir: /var/www/
-    #     restart: unless-stopped
-    #     ports:
-    #         - "8001:8000" # Menghindari konflik port dengan Nginx
-    #     environment:
-    #         - COMPOSER_MEMORY_LIMIT=-1
-    #     volumes:
-    #         - ./:/var/www
-    #     networks:
-    #         - harrynet
+            - redis
 
     db:
         image: mysql/mysql-server:5.7
@@ -70,21 +53,20 @@ services:
         networks:
             - harrynet
 
-    # watcher:
-    #     image: node:18
-    #     container_name: chokidar-watcher
-    #     working_dir: /var/www/
-    #     volumes:
-    #         - .:/var/www
-    #     command: node /var/www/watcher.js
-    #     healthcheck:
-    #         test: ["CMD-SHELL", "pgrep -f watcher.js || exit 1"]
-    #         interval: 10s
-    #         timeout: 2s
-    #         retries: 3
+    redis:
+        image: redis:7
+        container_name: redis-server
+        restart: unless-stopped
+        volumes:
+            - redis_data:/data
+        ports:
+            - "26739:6379"
+        networks:
+            - harrynet
 
 volumes:
     mysql_data:
+    redis_data:
 
 networks:
     harrynet:

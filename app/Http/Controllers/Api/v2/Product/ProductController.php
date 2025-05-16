@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\v2\Product;
 use App\Http\Controllers\Controller;
 use App\Models\Barang;
 use App\Models\Product;
+use App\Models\Wishlist;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 
 class ProductController extends Controller
@@ -139,11 +142,29 @@ class ProductController extends Controller
 
     public function productById($id)
     {
+        // Increment view count in Redis
+        Redis::connection('views')->incr("views:barang:{$id}");
         $query = Barang::query();
             self::selectQuery($query);
-        $data = $query->find($id);
+        $data = $query->findOrFail($id);
 
         return response()->json($data);
+    }
+    public function productLike($id)
+    {
+        // Increment view count in Redis
+        Redis::connection('likes')->incr("likes:barang:{$id}");
+        // $query = Barang::query();
+        //     self::selectQuery($query);
+        // $data = $query->findOrFail($id);
+
+        $list = Wishlist::create([
+            'barang_id'=> $id,
+            'user_id'=> Auth::user()->id
+        ]);
+
+
+        return response()->json($list);
     }
 
     public static function selectQuery($query)
