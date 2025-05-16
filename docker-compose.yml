@@ -1,11 +1,13 @@
 services:
     app:
+        image: belakang-toko-app
         build:
             args:
                 user: harry
                 uid: 1000
             context: ./
             dockerfile: Dockerfile.dev
+        container_name: belakang-toko-app
         working_dir: /var/www/
         restart: unless-stopped
         # ports:
@@ -61,6 +63,21 @@ services:
             - redis_data:/data
         ports:
             - "26739:6379"
+        networks:
+            - harrynet
+
+    scheduler:
+        image: belakang-toko-app # Pakai image dari app
+        container_name: belakang-toko-scheduler
+        command: ["php", "artisan", "schedule:work"]
+        depends_on:
+            - app
+            - redis
+            - db
+        volumes:
+            - ./:/var/www
+        env_file:
+            - .env
         networks:
             - harrynet
 

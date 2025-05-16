@@ -14,6 +14,9 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('stok:opname')->dailyAt('00:30');
+        $schedule->command('sync:barang-views')->everyFiveMinutes();
+        // $schedule->command('sync:barang-views')->everyMinute();
+        $schedule->command('sync:barang-likes')->everyFiveMinutes();
     }
 
     /**
