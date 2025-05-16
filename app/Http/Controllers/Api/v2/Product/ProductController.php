@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Api\v2\Product;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Models\Barang;
 use App\Models\Product;
 use App\Models\Wishlist;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -100,18 +101,18 @@ class ProductController extends Controller
                     case 'newest':
                         $query->orderBy('created_at', 'desc');
                         break;
-                    case 'price_asc':
-                        $query->orderBy('price', 'asc');
-                        break;
-                    case 'price_desc':
-                        $query->orderBy('price', 'desc');
-                        break;
-                    case 'popularity':
-                        $query->orderBy('view_count', 'desc');
-                        break;
-                    case 'rating':
-                        $query->orderBy('average_rating', 'desc');
-                        break;
+                    // case 'price_asc':
+                    //     $query->orderBy('price', 'asc');
+                    //     break;
+                    // case 'price_desc':
+                    //     $query->orderBy('price', 'desc');
+                    //     break;
+                    // case 'popularity':
+                    //     $query->orderBy('view_count', 'desc');
+                    //     break;
+                    // case 'rating':
+                    //     $query->orderBy('average_rating', 'desc');
+                    //     break;
                     default:
                         $query->orderBy('created_at', 'desc');
                 }
@@ -152,19 +153,26 @@ class ProductController extends Controller
     }
     public function productLike($id)
     {
+        Log::info('productLike called');
         // Increment view count in Redis
         Redis::connection('likes')->incr("likes:barang:{$id}");
         // $query = Barang::query();
         //     self::selectQuery($query);
         // $data = $query->findOrFail($id);
 
-        $list = Wishlist::firstOrCreate([
-            'barang_id'=> $id,
-            'user_id'=> Auth::user()->id
-        ]);
+        Log::info('Auth::user()', [Auth::user()]);
 
+        if (Auth::user()) {
+            $list = Wishlist::firstOrCreate([
+                'barang_id'=> $id,
+                'user_id'=> Auth::user()->id
+            ]);
 
-        return response()->json($list);
+            return response()->json($list);
+        } else {
+            Log::error('User not authenticated');
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
     }
 
     public static function selectQuery($query)
@@ -187,7 +195,7 @@ class ProductController extends Controller
         );
 
 
-        $query->with(['images']);
+        $query->with(['images', 'views:barang_id,views', 'likes:barang_id,likes']);
         return $query;
     }
 }

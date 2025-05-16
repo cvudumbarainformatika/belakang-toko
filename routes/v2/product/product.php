@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\v2\Auth\SocialiteController;
 use App\Http\Controllers\Api\v2\Product\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,3 +15,5 @@ Route::group([
         Route::get('/like/{id}', [ProductController::class, 'productLike']);
     });
 });
+
+
