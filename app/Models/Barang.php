@@ -9,6 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 class Barang extends Model
 {
     use HasFactory;
+
+    public function incrementViewCount()
+    {
+        $this->view_count = $this->view_count + 1;
+        $this->save();
+    }
     protected $guarded = ['id'];
     public function rincians()
     {
@@ -25,5 +31,10 @@ class Barang extends Model
     public function images()
     {
         return $this->hasMany(Imagebarang::class, 'kodebarang', 'kodebarang');
+    }
+
+    public function scopeMostViewed($query, $limit = 10)
+    {
+        return $query->orderBy('view_count', 'desc')->limit($limit);
     }
 }
