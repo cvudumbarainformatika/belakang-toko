@@ -6,11 +6,11 @@ use Illuminate\Support\Facades\Route;
 Route::group(
     [
         'middleware' => 'auth:api',
-        'prefix' => 'transaksi'
+        'prefix' => 'transaksi/pengembalianbarang'
     ],
     function () {
-        Route::get('/pengembalianbarang', [PengembalianBarangController::class, 'index']);
-        Route::post('/pengembalianbarang', [PengembalianBarangController::class, 'store']);
-        Route::get('/pengembalianbarang/{id}', [PengembalianBarangController::class, 'show']);
+        Route::get('/get', [PengembalianBarangController::class, 'index']);
+        Route::post('/store', [PengembalianBarangController::class, 'store']);
+        Route::get('/getbyid/{id}', [PengembalianBarangController::class, 'show']);
     }
 );
