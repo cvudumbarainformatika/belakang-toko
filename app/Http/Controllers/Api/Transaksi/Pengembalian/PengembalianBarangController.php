@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Stok\stok;
 use App\Models\Transaksi\Pengembalian\HeaderPengembalian;
 use App\Models\Transaksi\Pengembalian\DetailPengembalian;
+use App\Models\Barang;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -85,15 +86,31 @@ class PengembalianBarangController extends Controller
                     'status' => 'pending'
                 ]);
 
-                // Update qty retur di detail_penjualan_fifos
-                // $penjualanFifo = DetailPenjualanFifo::where('no_penjualan', $request->no_penjualan)
-                //     ->where('barang_id', $detail['barang_id'])
-                //     ->first();
+                // Load barang data first
+                $barang = Barang::where('kodebarang', $detail['kodebarang'])->first();
+                if (!$barang) {
+                    throw new Exception("Barang tidak ditemukan");
+                }
 
-                // if ($penjualanFifo) {
-                //     $penjualanFifo->retur += $detail['qty'];
-                //     $penjualanFifo->save();
-                // }
+                // Validate FIFO returns for this detail
+                $penjualanFifos = DetailPenjualanFifo::where('no_penjualan', $request->no_penjualan)
+                    ->where('kodebarang', $detail['kodebarang'])
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                if ($penjualanFifos->isEmpty()) {
+                    throw new Exception("Data penjualan FIFO tidak ditemukan untuk barang {$barang->namabarang}");
+                }
+
+                // Calculate total available quantity from all FIFO records
+                $totalJumlah = $penjualanFifos->sum('jumlah');
+                $totalRetur = $penjualanFifos->sum('retur');
+
+                // Check if total return quantity exceeds total purchased quantity
+                $sisaKuotaRetur = $totalJumlah - $totalRetur;
+                if (($totalRetur + $detail['qty']) > $totalJumlah) {
+                    throw new Exception("Jumlah retur melebihi jumlah pembelian untuk barang {$barang->namabarang}. Maksimal retur yang tersisa: {$sisaKuotaRetur}");
+                }
             }
 
             DB::commit();
@@ -156,8 +173,9 @@ class PengembalianBarangController extends Controller
                 $sisaRetur = $detail->qty;
 
                 // Check if total return quantity exceeds total purchased quantity
+                $sisaKuotaRetur = $totalJumlah - $totalRetur;
                 if (($totalRetur + $detail->qty) > $totalJumlah) {
-                    throw new Exception("Jumlah retur melebihi jumlah pembelian untuk barang {$detail->barang->namabarang}");
+                    throw new Exception("Jumlah retur melebihi jumlah pembelian untuk barang {$detail->barang->namabarang}. Maksimal retur yang tersisa: {$sisaKuotaRetur}");
                 }
 
                 // Update retur quantity in FIFO records one by one
@@ -177,14 +195,14 @@ class PengembalianBarangController extends Controller
 
             // Update header status
             $header->update([
-                'status' => 'approved',
+                'status' => 'diganti',
                 'approved_by' => auth()->id(),
                 'approved_at' => Carbon::now()
             ]);
 
             // Update detail status and process stock returns
             foreach ($header->details as $detail) {
-                $detail->update(['status' => 'approved']);
+                $detail->update(['status' => 'diganti']);
 
                 // Get available stocks with jumlah_k > 0
                 $stoks = stok::where('kdbarang', $detail->kodebarang)
