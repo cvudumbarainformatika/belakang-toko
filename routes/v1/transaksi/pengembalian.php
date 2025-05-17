@@ -11,6 +11,8 @@ Route::group(
     function () {
         Route::get('/get', [PengembalianBarangController::class, 'index']);
         Route::post('/store', [PengembalianBarangController::class, 'store']);
+        Route::post('/approve/{id}', [PengembalianBarangController::class, 'approve']);
+        Route::post('/reject/{id}', [PengembalianBarangController::class, 'reject']);
         Route::get('/getbyid/{id}', [PengembalianBarangController::class, 'show']);
     }
 );

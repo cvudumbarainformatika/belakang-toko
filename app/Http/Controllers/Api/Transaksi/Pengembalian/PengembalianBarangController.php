@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Transaksi\Pengembalian;
 
 use App\Http\Controllers\Controller;
+use App\Models\Stok\stok;
 use App\Models\Transaksi\Pengembalian\HeaderPengembalian;
 use App\Models\Transaksi\Pengembalian\DetailPengembalian;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
@@ -63,7 +64,7 @@ class PengembalianBarangController extends Controller
             // Create header
             $header = HeaderPengembalian::create([
                 'no_pengembalian' => 'RTN' . date('YmdHis'),
-                'penjualan_id' => $request->penjualan_id,
+                'header_penjualan_id' => $request->penjualan_id,
                 'no_penjualan' => $request->no_penjualan,
                 'tanggal' => Carbon::now(),
                 'keterangan' => $request->keterangan,
@@ -135,7 +136,44 @@ class PengembalianBarangController extends Controller
         try {
             DB::beginTransaction();
 
-            $header = HeaderPengembalian::with('details')->findOrFail($id);
+            $header = HeaderPengembalian::with(['details.barang', 'penjualan'])->findOrFail($id);
+
+            // Validate FIFO returns for each detail
+            foreach ($header->details as $detail) {
+                // Get all FIFO records for this item in the sale
+                $penjualanFifos = DetailPenjualanFifo::where('no_penjualan', $header->penjualan->no_penjualan)
+                    ->where('kodebarang', $detail->kodebarang)
+                    ->orderBy('id', 'asc')  // Ensure we process oldest records first
+                    ->get();
+
+                if ($penjualanFifos->isEmpty()) {
+                    throw new Exception("Data penjualan FIFO tidak ditemukan untuk barang {$detail->barang->namabarang}");
+                }
+
+                // Calculate total available quantity from all FIFO records
+                $totalJumlah = $penjualanFifos->sum('jumlah');
+                $totalRetur = $penjualanFifos->sum('retur');
+                $sisaRetur = $detail->qty;
+
+                // Check if total return quantity exceeds total purchased quantity
+                if (($totalRetur + $detail->qty) > $totalJumlah) {
+                    throw new Exception("Jumlah retur melebihi jumlah pembelian untuk barang {$detail->barang->namabarang}");
+                }
+
+                // Update retur quantity in FIFO records one by one
+                foreach ($penjualanFifos as $fifo) {
+                    $availableForReturn = $fifo->jumlah - $fifo->retur;
+
+                    if ($availableForReturn > 0) {
+                        $returAmount = min($sisaRetur, $availableForReturn);
+                        $fifo->retur += $returAmount;
+                        $fifo->save();
+
+                        $sisaRetur -= $returAmount;
+                        if ($sisaRetur <= 0) break;
+                    }
+                }
+            }
 
             // Update header status
             $header->update([
@@ -144,11 +182,70 @@ class PengembalianBarangController extends Controller
                 'approved_at' => Carbon::now()
             ]);
 
-            // Update detail status
+            // Update detail status and process stock returns
             foreach ($header->details as $detail) {
                 $detail->update(['status' => 'approved']);
 
-                // Here you can add additional logic for stock updates if needed
+                // Get available stocks with jumlah_k > 0
+                $stoks = stok::where('kdbarang', $detail->kodebarang)
+                    ->where('jumlah_k', '>', 0)
+                    ->orderBy('created_at', 'asc')
+                    ->get();
+
+                // Get latest price even if stock is empty
+                $lastHargaBeli = stok::where('kdbarang', $detail->kodebarang)
+                    ->orderBy('created_at', 'desc')
+                    ->value('harga_beli_k') ?? 0;
+
+                $sisaQty = $detail->qty;
+                $fifoBatch = [];
+
+                // Iterasi per record stok (FIFO)
+                foreach ($stoks as $stok) {
+                    if ($sisaQty <= 0) break;
+
+                    $qtyAmbil = min($sisaQty, $stok->jumlah_k);
+
+                    // Create FIFO record for this batch
+                    $fifoBatch[] = [
+                        'no_penjualan' => $header->no_pengembalian,
+                        'kodebarang' => $detail->kodebarang,
+                        'jumlah' => $qtyAmbil,
+                        'retur' => 0,
+                        'harga_beli' => $stok->harga_beli_k,
+                        'harga_jual' => 0, // Set to 0 since it's a return
+                        'diskon' => 0,
+                        'subtotal' => 0,
+                        'stok_id' => $stok->id
+                    ];
+
+                    // Update stock quantity for this batch
+                    $stok->jumlah_k -= $qtyAmbil;
+                    $stok->save();
+
+                    $sisaQty -= $qtyAmbil;
+                }
+
+                // If we still have remaining qty, create record with null stok_id
+                if ($sisaQty > 0) {
+                    // We already have lastHargaBeli from earlier query
+
+                    // Add record for remaining quantity
+                    $fifoBatch[] = [
+                        'no_penjualan' => $header->no_pengembalian,
+                        'kodebarang' => $detail->kodebarang,
+                        'jumlah' => $sisaQty,
+                        'retur' => 0,
+                        'harga_beli' => $lastHargaBeli,
+                        'harga_jual' => 0,
+                        'diskon' => 0,
+                        'subtotal' => 0,
+                        'stok_id' => null // Indicate this is a stockless return
+                    ];
+                }
+
+                // Create all FIFO records for this return
+                DetailPenjualanFifo::insert($fifoBatch);
             }
 
             DB::commit();
