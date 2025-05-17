@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('header_pengembalians', function (Blueprint $table) {
             $table->id();
             $table->string('no_pengembalian')->unique();
-            $table->unsignedBigInteger('penjualan_id');
+            $table->unsignedBigInteger('header_penjualan_id');
             $table->string('no_penjualan');
             $table->dateTime('tanggal');
             $table->text('keterangan')->nullable();

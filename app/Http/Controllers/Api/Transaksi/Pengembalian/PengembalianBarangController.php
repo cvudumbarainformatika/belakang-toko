@@ -49,7 +49,7 @@ class PengembalianBarangController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'penjualan_id' => 'required|exists:penjualans,id',
+            'penjualan_id' => 'required|exists:header_penjualans,id',
             'keterangan' => 'required|string',
             'details' => 'required|array|min:1',
             'details.*.barang_id' => 'required|exists:barangs,id',
@@ -64,6 +64,7 @@ class PengembalianBarangController extends Controller
             $header = HeaderPengembalian::create([
                 'no_pengembalian' => 'RTN' . date('YmdHis'),
                 'penjualan_id' => $request->penjualan_id,
+                'no_penjualan' => $request->no_penjualan,
                 'tanggal' => Carbon::now(),
                 'keterangan' => $request->keterangan,
                 'status' => 'pending',
@@ -73,23 +74,25 @@ class PengembalianBarangController extends Controller
             // Create details dan update stok
             foreach ($request->details as $detail) {
                 // Create detail pengembalian
-                DetailPengembalian::create([
+                DetailPengembalian::updateOrCreate([
                     'header_pengembalian_id' => $header->id,
                     'barang_id' => $detail['barang_id'],
+                ], [
+                    'kodebarang' => $detail['kodebarang'],
                     'qty' => $detail['qty'],
                     'keterangan_rusak' => $detail['keterangan_rusak'],
                     'status' => 'pending'
                 ]);
 
                 // Update qty retur di detail_penjualan_fifos
-                $penjualanFifo = DetailPenjualanFifo::where('no_penjualan', $header->penjualan->no_penjualan)
-                    ->where('barang_id', $detail['barang_id'])
-                    ->first();
+                // $penjualanFifo = DetailPenjualanFifo::where('no_penjualan', $request->no_penjualan)
+                //     ->where('barang_id', $detail['barang_id'])
+                //     ->first();
 
-                if ($penjualanFifo) {
-                    $penjualanFifo->retur += $detail['qty'];
-                    $penjualanFifo->save();
-                }
+                // if ($penjualanFifo) {
+                //     $penjualanFifo->retur += $detail['qty'];
+                //     $penjualanFifo->save();
+                // }
             }
 
             DB::commit();

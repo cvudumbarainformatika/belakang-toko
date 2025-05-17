@@ -21,7 +21,7 @@ class HeaderPengembalian extends Model
     // Relationships
     public function penjualan()
     {
-        return $this->belongsTo(HeaderPenjualan::class);
+        return $this->belongsTo(HeaderPenjualan::class, 'header_penjualan_id');
     }
 
     public function details()
