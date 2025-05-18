@@ -72,10 +72,19 @@ class CartController extends Controller
 
     public function destroy(Request $request, Barang $barang)
     {
-        CartItem::where('user_id', $request->user()->id)
+        $user = Auth::user();
+        CartItem::where('user_id', $user->id)
             ->where('barang_id', $barang->id)
             ->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    public function destroyAllCart(Request $request)
+    {
+        $user = Auth::user();
+        CartItem::where('user_id', $user->id)->delete();
+
+        return response()->json(['success' => true, 'message' => 'Semua item keranjang berhasil dihapus.']);
     }
 }

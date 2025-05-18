@@ -11,8 +11,7 @@ class OrderPenjualan extends Model
 
     protected $table = 'order_penjualans';
 
-    protected $guarded = ['id'
-    ];
+    protected $guarded = ['id'];
 
     // Relasi ke User (pelanggan)
     public function pelanggan()
