@@ -13,6 +13,6 @@ class CartItem extends Model
 
     public function product()
     {
-        return $this->belongsTo(Barang::class);
+        return $this->hasOne(Barang::class, 'id', 'barang_id');
     }
 }

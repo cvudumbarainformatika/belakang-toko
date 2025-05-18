@@ -19,9 +19,12 @@ class CartController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $items = CartItem::with('product')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->get();
+        
+            // return $items;
 
         return response()->json([
             'items' => $items->map(function ($item) {
@@ -29,7 +32,7 @@ class CartController extends Controller
                     'barang_id' => $item->barang_id,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
-                    'name' => $item->product->name,
+                    'name' => $item->product->namabarang,
                     'image' => $item->product->image,
                 ];
             }),
