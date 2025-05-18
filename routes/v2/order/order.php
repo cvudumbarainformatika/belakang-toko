@@ -9,7 +9,9 @@ Route::group([
 ], function () {
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/penjualan', [OrderPenjualanController::class, 'orderPenjualan']);
+        Route::post('/penjualan', [OrderPenjualanController::class, 'orderPenjualan']);
+        Route::get('/penjualan/by-pelanggan', [OrderPenjualanController::class, 'getByPelanggan']);
+        Route::get('/penjualan/by-sales/{sales_id}', [OrderPenjualanController::class, 'getBySales']);
     });
 });
 

@@ -28,28 +28,25 @@ class OrderPenjualanController extends Controller
         // Generate noorder unik
         $noorder = $this->generateNoOrder();
 
-        // Validasi input utama dan rincian
+        // Validasi input utama dan rincian (tglorder dihapus)
         $validated = $request->validate([
-            // 'noorder' dihapus dari validasi request, karena di-generate otomatis
-            'tglorder'           => 'required|date',
             'pelanggan_id'       => 'required|exists:users,id',
             'sales_id'           => 'required|exists:users,id',
             'total_harga'        => 'required|numeric|min:0',
-            'status_order'       => 'nullable|in:1,2,3',
             'status_pembayaran'  => 'nullable|in:1,2',
             'rincians'           => 'required|array|min:1',
-            'rincians.*.produk_id' => 'required|exists:products,id',
-            'rincians.*.qty'       => 'required|integer|min:1',
+            'rincians.*.barang_id' => 'required|exists:barangs,id',
+            'rincians.*.jumlah'       => 'required|integer|min:1',
             'rincians.*.harga'     => 'required|numeric|min:0',
             'rincians.*.subtotal'  => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
         try {
-            // Simpan order penjualan
+            // Simpan order penjualan, tglorder otomatis now()
             $order = OrderPenjualan::create([
                 'noorder'           => $noorder,
-                'tglorder'          => $validated['tglorder'],
+                'tglorder'          => now(),
                 'pelanggan_id'      => $validated['pelanggan_id'],
                 'sales_id'          => $validated['sales_id'],
                 'total_harga'       => $validated['total_harga'],
@@ -57,11 +54,10 @@ class OrderPenjualanController extends Controller
                 'status_pembayaran' => $validated['status_pembayaran'] ?? '1',
             ]);
 
-            // Simpan rincian order penjualan
             foreach ($validated['rincians'] as $rincian) {
                 $order->rincians()->create([
-                    'produk_id' => $rincian['produk_id'],
-                    'qty'       => $rincian['qty'],
+                    'barang_id' => $rincian['barang_id'],
+                    'jumlah'       => $rincian['jumlah'],
                     'harga'     => $rincian['harga'],
                     'subtotal'  => $rincian['subtotal'],
                 ]);
@@ -81,5 +77,35 @@ class OrderPenjualanController extends Controller
                 'message' => 'Gagal membuat order penjualan: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function getByPelanggan()
+    {
+        $user = Auth::user();
+        $orders = OrderPenjualan::with(['rincians:order_penjualan_id,barang_id,jumlah,harga', 'rincians.barang:id,namabarang'])
+            ->select('id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima')
+            ->where('pelanggan_id', $user->id)
+            ->orderByDesc('tglorder')
+            ->limit(100)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $orders
+        ]);
+    }
+
+    public function getBySales($sales_id)
+    {
+        $orders = OrderPenjualan::with(['rincians:order_penjualan_id,produk_id,qty,harga,subtotal'])
+            ->select('id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima')
+            ->where('sales_id', $sales_id)
+            ->orderByDesc('tglorder')
+            ->simplePaginate(20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $orders
+        ]);
     }
 }
