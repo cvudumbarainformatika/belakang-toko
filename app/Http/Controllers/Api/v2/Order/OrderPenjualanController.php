@@ -82,9 +82,17 @@ class OrderPenjualanController extends Controller
     public function getByPelanggan()
     {
         $user = Auth::user();
-        $orders = OrderPenjualan::with(['rincians:order_penjualan_id,barang_id,jumlah,harga', 'rincians.barang:id,namabarang'])
+        $jabatan = $user->kodejabatan;
+
+        $orders = OrderPenjualan::with(['rincians:order_penjualan_id,barang_id,jumlah,harga', 'rincians.barang:id,namabarang', 'pelanggan:id,nama', 'sales:id,nama'])
             ->select('id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima')
-            ->where('pelanggan_id', $user->id)
+            ->where(function ($query) use ($user, $jabatan) {
+                if ($jabatan == 3) { // Sales
+                    $query->where('sales_id', $user->id);
+                } else { // Pelanggan
+                    $query->where('pelanggan_id', $user->id);
+                }
+            })
             ->orderByDesc('tglorder')
             ->limit(100)
             ->get();

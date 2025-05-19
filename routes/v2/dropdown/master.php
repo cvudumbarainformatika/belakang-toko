@@ -10,6 +10,7 @@ Route::group([
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/sales', [MasterController::class, 'sales']);
+        Route::get('/pelanggan', [MasterController::class, 'pelanggan']);
     });
 });
 
