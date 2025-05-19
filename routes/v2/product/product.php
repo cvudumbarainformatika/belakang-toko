@@ -13,6 +13,8 @@ Route::group([
        // Route untuk mendapatkan data user yang sedang login
         Route::get('/by/{id}', [ProductController::class, 'productById']);
         Route::get('/like/{id}', [ProductController::class, 'productLike']);
+
+        Route::get('/whislist', [ProductController::class, 'whishlist']);
     });
 });
 

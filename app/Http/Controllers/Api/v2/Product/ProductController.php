@@ -198,4 +198,17 @@ class ProductController extends Controller
         $query->with(['images', 'views:barang_id,views', 'likes:barang_id,likes']);
         return $query;
     }
+
+    public function whishlist()
+    {
+        $user = Auth::user();
+        $query = Wishlist::query();
+        $query->with(['barang'=>function($q){
+            self::selectQuery($q);
+        }]);
+        $query->where('user_id', $user->id);
+        $data = $query->limit(100)->get();
+
+        return response()->json($data);
+    }
 }
