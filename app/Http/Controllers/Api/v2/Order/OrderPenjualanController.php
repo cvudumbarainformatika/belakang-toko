@@ -18,7 +18,7 @@ class OrderPenjualanController extends Controller
             $date = now()->format('ymd');
             $random = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
             $noorder = "{$date}-{$random}-OPJ";
-        } while (\App\Models\OrderPenjualan::where('noorder', $noorder)->exists());
+        } while (OrderPenjualan::where('noorder', $noorder)->exists());
 
         return $noorder;
     }
