@@ -10,6 +10,7 @@ use App\Models\Pelanggan;
 use App\Models\Stok\stok;
 use App\Models\Transaksi\Penjualan\DetailPenjualan;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
+use App\Helpers\FifoHelper;
 use App\Models\Transaksi\Penjualan\HeaderPenjualan;
 use App\Models\User;
 use Exception;
@@ -348,104 +349,18 @@ class PenjualanController extends Controller
                     ]
                 );
             }
-            $detail = DetailPenjualan::where('no_penjualan', $request->no_penjualan)->get();
-            $kode = $detail->pluck('kodebarang');
-            $stoks = stok::lockForUpdate()->whereIn('kdbarang', $kode)->where('jumlah_k', '>', 0)->orderBy('id', 'asc')->get();
 
+            // $detail = DetailPenjualan::where('no_penjualan', $request->no_penjualan)->get();
+            // $kode = $detail->pluck('kodebarang');
+            // $stoks = stok::lockForUpdate()->whereIn('kdbarang', $kode)->where('jumlah_k', '>', 0)->orderBy('id', 'asc')->get();
 
-            // update Stok
-            $detaiPengurangan = [];
-            foreach ($detail as $item) {
-                if (sizeof($stoks) > 0) {
-                    $stok = collect($stoks)->where('kdbarang', $item->kodebarang);
-                    $jumlahKeluar = $item->jumlah;
-                    $total_stok_tersedia = $stok->sum('jumlah_k');
-
-                    // Skenario 1: Proses semua stok yang tersedia
-                    foreach ($stok as $stokItem) {
-                        if ($jumlahKeluar <= 0) break;
-                        $pengurangan = min($jumlahKeluar, $stokItem->jumlah_k);
-
-
-                        $simpanRinciFifo = DetailPenjualanFifo::updateOrCreate([
-                            'no_penjualan' => $request->no_penjualan,
-                            'kodebarang' => $item->kodebarang,
-                            'stok_id' => $stokItem->id,
-                        ], [
-                            'jumlah' => $pengurangan,
-                            'harga_beli' => $stokItem->harga_beli_k,
-                            'harga_jual' => $item->harga_jual,
-                            'diskon' => $item->diskon * ($pengurangan / $item->jumlah),
-                            'subtotal' => ($pengurangan * $item->harga_jual) - ($item->diskon * ($pengurangan / $item->jumlah)),
-                        ]);
-                        if (!$simpanRinciFifo) {
-                            throw new \Exception('Rincian disimpan');
-                        }
-                        $stokItem->decrement('jumlah_k', $pengurangan);
-                        $jumlahKeluar -= $pengurangan;
-
-                        $detaiPengurangan[] = [
-                            'pengurangan' => $pengurangan,
-                            'simpanRinciFifo' => $simpanRinciFifo,
-                            'jumlahKeluar' => $jumlahKeluar,
-                        ];
-                    }
-
-                    // Skenario 2: Jika masih ada sisa yang belum terpenuhi
-                    if ($jumlahKeluar > 0) {
-                        $stok = stok::where('kdbarang', $item->kodebarang)->orderBy('id', 'desc')->first();
-                        $barang = Barang::where('kodebarang', $item->kodebarang)->first();
-                        if (!$stok) {
-                            throw new \Exception('Belum pernah ada stok untuk ' . $barang->namabarang);
-                        }
-                        $simpanRinciFifo = DetailPenjualanFifo::create([
-                            'no_penjualan' => $request->no_penjualan,
-                            'kodebarang' => $item->kodebarang,
-
-                            'jumlah' => $jumlahKeluar,
-                            'harga_beli' => $stok->harga_beli_k,
-                            'harga_jual' => $item->harga_jual,
-                            'diskon' => $item->diskon * ($jumlahKeluar / $item->jumlah),
-                            'subtotal' => ($jumlahKeluar * $item->harga_jual) - ($item->diskon * ($jumlahKeluar / $item->jumlah)),
-                            'stok_id' => null,
-                        ]);
-                        if (!$simpanRinciFifo) {
-                            throw new \Exception('Rincian gagal disimpan');
-                        }
-                        $detaiPengurangan[] = [
-                            'stok' => $stok,
-                            'simpanRinciFifo' => $simpanRinciFifo,
-                            'jumlahKeluar' => $jumlahKeluar,
-                        ];
-                    }
-                } else {
-                    $stok = stok::where('kdbarang', $item->kodebarang)->orderBy('id', 'desc')->first();
-                    $barang = Barang::where('kodebarang', $item->kodebarang)->first();
-                    if (!$stok) {
-                        throw new \Exception('Belum pernah ada stok untuk barang ini ' . $barang->namabarang);
-                    }
-
-                    $simpanRinciFifo = DetailPenjualanFifo::updateOrCreate([
-                        'no_penjualan' => $request->no_penjualan,
-                        'kodebarang' => $item->kodebarang,
-                    ], [
-                        'jumlah' => $item->jumlah,
-                        'harga_beli' => $stok->harga_beli_k,
-                        'harga_jual' => $item->harga_jual,
-                        'diskon' => $item->diskon,
-                        'subtotal' => $item->subtotal,
-                        'stok_id' => null,
-                    ]);
-                    if (!$simpanRinciFifo) {
-                        throw new \Exception('Rincian gagal disimpan');
-                    }
-                }
-                // return new JsonResponse([
-                //     'message' => 'Percobaan',
-                //     'item' => $item,
-                //     'stok' => $stok,
-                // ], 410);
+            // Process FIFO for all details at once
+            try {
+                $detaiPengurangan = FifoHelper::processFifo($request->no_penjualan);
+            } catch (\Exception $e) {
+                throw new \Exception("Error memproses FIFO: " . $e->getMessage());
             }
+
             $data->load([
                 'detail.masterBarang',
                 // 'detailFifo.masterBarang',
