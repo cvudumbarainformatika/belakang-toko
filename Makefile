@@ -34,3 +34,6 @@ refresh:
 #redis
 redis-cli:
 	docker compose exec redis redis-cli
+
+redis-server:
+	docker compose exec redis redis-cli -h 27.112.78.135 -p 6379 -a sasa0102

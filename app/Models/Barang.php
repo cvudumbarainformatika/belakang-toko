@@ -36,7 +36,7 @@ class Barang extends Model
 
     public function images()
     {
-        return $this->hasMany(Penerimaan_r::class, 'kdbarang', 'kodebarang');
+        return $this->hasMany(Imagebarang::class, 'kodebarang', 'kodebarang');
     }
     public function penjualan()
     {
