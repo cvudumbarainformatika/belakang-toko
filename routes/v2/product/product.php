@@ -8,10 +8,10 @@ Route::group([
 ], function () {
   // Route untuk mendapatkan URL redirect
   Route::get('/get-products', [ProductController::class, 'getProducts']);
+  Route::get('/by/{id}', [ProductController::class, 'productById']);
 
     Route::middleware('auth:sanctum')->group(function () {
        // Route untuk mendapatkan data user yang sedang login
-        Route::get('/by/{id}', [ProductController::class, 'productById']);
         Route::get('/like/{id}', [ProductController::class, 'productLike']);
 
         Route::get('/whislist', [ProductController::class, 'whishlist']);
