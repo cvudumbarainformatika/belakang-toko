@@ -15,6 +15,7 @@ class UsersController extends Controller
     public function get_user()
     {
         $data = User::where('username','!=' ,'sa')
+        ->whereNotNull('jabatan')
         ->when(request('q') , function($x){
             $x->where('nama', 'like', '%' . request('q') . '%')
               ->orWhere('username','like', '%' . request('q') . '%')
