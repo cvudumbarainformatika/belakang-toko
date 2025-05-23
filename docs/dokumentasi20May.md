@@ -41,13 +41,13 @@
 
 -   [ ] Hapus field sales
 -   [ ] Validasi data pelanggan tidak boleh kosong
--   [ ] Rapikan tampilan form
+-   [🟢] Rapikan tampilan form
 -   [ ] Reset form di order barang
 -   [ ] Satuan di keranjang belanja
 
 ### 5.2 List Penjualan
 
--   [ ] Tampilkan list di awal, form setelahnya
+-   [🟢] Tampilkan list di awal, form setelahnya
 -   [ ] Tambah filter list penjualan (filter flag:semua, lunas, terhutang, dan masing2 flag)
 -   [ ] Print: tambah kolom satuan
 
