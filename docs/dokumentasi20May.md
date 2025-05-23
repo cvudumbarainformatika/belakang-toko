@@ -2,19 +2,19 @@
 
 ## 1. Manajemen User & Pegawai
 
--   [ ] Hidden pelanggan dari user
--   [ ] Input pegawai harus ada default pegawai
+-   [🟢] Hidden pelanggan dari user
+-   [🟢] Input pegawai harus ada default pegawai
 -   [ ] Akun pelanggan (pending - menunggu verifikasi fisik)
 
 ## 2. Master Barang
 
--   [ ] Input non-keramik: field jenis keramik tidak muncul
--   [ ] Filter master barang (low stock dll)
--   [ ] Format tampilan satuan:
+-   [🟢] Input non-keramik: field jenis keramik tidak muncul
+-   [🟢] Filter master barang (low stock dll)
+-   [🟢] Format tampilan satuan:
     -   Satuan besar tanpa kurung
     -   Satuan kecil (dalam kurung)
--   [ ] Kesepakatan pemecahan satuan besar ke kecil
--   [ ] Pencarian by nama barang dan kode barang
+-   [🟢] Kesepakatan pemecahan satuan besar ke kecil
+-   [🟢] Pencarian by nama barang dan kode barang
 
 ## 3. Stok & Inventory
 
@@ -22,7 +22,7 @@
     -   Perbaikan warna label nama barang
     -   Highlight content
     -   Penyesuaian content stok sesuai kesepakatan
--   [ ] Kartu stok barang (fix bug)
+-   [🟢] Kartu stok barang (fix bug) (Permasalahan Karena tanggal di transaksi tersimpan 0000-00-00 jadi jumlah stok langsung masuk ke sado awal bukan menambah list sebgai transaksi)
 -   [ ] Pencarian di menu stok
 -   [ ] Stok satuan_b dihitung otomatis oleh sistem
 -   [ ] Tampilan stok saat login sebagai sales
@@ -30,6 +30,7 @@
 ## 4. Penerimaan Barang
 
 -   [ ] Bug di transaksi penerimaan
+-   [ ] Bug di tanggal penerimaan, ketika tanggal tidak dipilih ulang tanggalnya akan tersimpan 0000-00-00
 -   [ ] Aktivasi delete header
 -   [ ] Perbaikan print transaksi
 -   [ ] Tambah master kebijakan supplier

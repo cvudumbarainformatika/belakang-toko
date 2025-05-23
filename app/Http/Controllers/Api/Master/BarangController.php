@@ -60,7 +60,8 @@ class BarangController extends Controller
         ->when(request('q'), function ($query) {
             $query->where(function ($q) {
                 $q->where('barangs.namabarang', 'like', '%' . request('q') . '%')
-                  ->orWhere('barangs.kodebarang', 'like', '%' . request('q') . '%');
+                  ->orWhere('barangs.kodebarang', 'like', '%' . request('q') . '%')
+                  ->orWhere('barangs.kategori', 'like', '%' . request('q') . '%');
             });
         })
         ->leftJoin('imagebarangs', function ($join) {
@@ -70,6 +71,9 @@ class BarangController extends Controller
         ->leftJoin('stoks', function ($join) {
             $join->on('barangs.kodebarang', '=', 'stoks.kdbarang')
                  ->where('stoks.jumlah_k', '!=', 0);
+        })
+        ->leftJoin('jeniskeramiks', function ($join) {
+            $join->on('barangs.kodejenis', '=', 'jeniskeramiks.kodejenis');
         })
         ->with([
             'rincians',
@@ -122,12 +126,15 @@ class BarangController extends Controller
             },
             'stoks'
         ])
-        ->select('barangs.*')
+        ->select('barangs.*', 'jeniskeramiks.nama as jeniskeramik')
         ->selectRaw('
             GROUP_CONCAT(imagebarangs.gambar) as image,
             GROUP_CONCAT(imagebarangs.flag_thumbnail) as flag_thumbnail,
             COALESCE(SUM(CASE WHEN stoks.jumlah_k != 0 THEN stoks.jumlah_k ELSE 0 END), 0) as stok_kecil,
-            COALESCE(ROUND(SUM(CASE WHEN stoks.isi != 0 THEN stoks.jumlah_k / stoks.isi ELSE 0 END), 2), 0) as stok_besar
+            COALESCE(ROUND(SUM(CASE WHEN stoks.isi != 0 THEN stoks.jumlah_k / stoks.isi ELSE 0 END), 2), 0) as stok_besar,
+
+            FLOOR(SUM(CASE WHEN stoks.isi != 0 THEN stoks.jumlah_k / stoks.isi ELSE 0 END)) as stok_besarbaru,
+            COALESCE(MOD(SUM(CASE WHEN stoks.jumlah_k != 0 THEN stoks.jumlah_k ELSE 0 END), MAX(stoks.isi)), 0) as stok_besarkecil
         ')
         ->when(request('minim_stok'), function ($query) {
             $query->havingRaw('
@@ -137,11 +144,12 @@ class BarangController extends Controller
                 END = ?', [request('minim_stok')]
             );
         })
+
         ->groupBy('barangs.id')
         ->orderBy('barangs.id', 'desc')
         ->simplePaginate(request('per_page'));
 
-    // Transformasi data untuk menambahkan kartustok dan total
+
    // Transformasi data untuk menambahkan kartustok dan total
     $data->getCollection()->transform(function ($item) use ($awal, $bulanSebelumnya, $akhirBulanSebelumnya) {
         // Log data relasi untuk debugging
