@@ -8,6 +8,8 @@ Route::group([
     'prefix' => 'transaksi/orderpembelian'
 ], function () {
     Route::post('/hapusrincian', [OrderPenerimaanController::class, 'hapusrincianorder']);
+     Route::post('/hapusall', [OrderPenerimaanController::class, 'hapusall']);
+
     Route::post('/simpan', [OrderPenerimaanController::class, 'simpan']);
     Route::get('/getlistorder', [OrderPenerimaanController::class, 'getlistorder']);
 

@@ -207,5 +207,60 @@ class OrderPenerimaanController extends Controller
 
         return new JsonResponse($data);
     }
+
+    public function hapusall(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Hapus rincian order pembelian
+            OrderPembelian_r::where('noorder', $request->noorder)->delete();
+
+            // Hapus header penerimaan
+            Penerimaan_h::where('noorder', $request->noorder)->delete();
+
+            // Hapus header order pembelian
+            OrderPembelian_h::where('noorder', $request->noorder)->delete();
+
+            DB::commit();
+
+            $hasil = self::getlistorderhasilbytgl($request->from, $request->to,$request->q,$request->per_page);
+            return $hasil;
+            return new JsonResponse(['message' => 'Data berhasil dihapus', 'result' => $hasil], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return new JsonResponse(['message' => 'Gagal menghapus data', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+     public static function getlistorderhasilbytgl($fromx,$tox,$qx,$per_page)
+    {
+        $q = $qx === null ? '' : $qx;
+        $from = $fromx.' 00:00:00';
+        $to = $tox.' 23:59:59';
+        $list = OrderPembelian_h::select('orderpembelian_h.*','orderpembelian_h.kdsuplier','suppliers.kodesupl','suppliers.nama')
+        ->leftJoin('suppliers', 'orderpembelian_h.kdsuplier', '=', 'suppliers.kodesupl')
+        ->with([
+            'suplier',
+            'rinci' => function($rinci){
+                $rinci->select('*', DB::raw('(jumlahpo*hargapo) as subtotal'))
+                ->with(['mbarang']);
+            }
+        ])
+        ->whereBetween('orderpembelian_h.tglorder', [
+            $from,
+            $to
+        ])
+        ->when($q, function ($query ) use($q)  {
+            $query->where(function($x) use($q) {
+                $x->where('orderpembelian_h.noorder', 'like', '%' . $q .  '%')
+                  ->orWhere('suppliers.nama', 'like', '%' . $q . '%');
+            });
+        })
+        ->simplePaginate($per_page);
+        return $list;
+    }
 }
+
+
 
