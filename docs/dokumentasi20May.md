@@ -51,11 +51,11 @@
 -   [🟢] Tambah filter list penjualan (filter flag:semua, lunas, terhutang, dan masing2 flag)
 -   [ ] Print: tambah kolom satuan
 
-### 5.3 Pembayaran & Retur
+### 5.3 Pembayaran Cicilan & Retur
 
--   [ ] Fix bug DP di pembayaran cicilan (pembayaran DP harus lunas, boleh ga lunas sih kalo pelanggan, tapi harus punya pelanggan id)
--   [ ] Validasi pembayaran <= total hutang (cek di backend untuk semua hutang dan retur)
--   [ ] Cicilan: kurangi dengan nilai return (ini kalo ada retur jumlah cicilan nya ga ngurangi retur)
+-   [🟢] Fix bug DP di pembayaran cicilan (pembayaran DP harus lunas, boleh ga lunas sih kalo pelanggan, tapi harus punya pelanggan id)
+-   [🟢] Validasi pembayaran <= total hutang (cek di backend untuk semua hutang dan retur)
+-   [🟢] Cicilan: kurangi dengan nilai return (ini kalo ada retur jumlah cicilan nya ga ngurangi retur)
 -   [ ] Fix bug jumlah return
 -   [ ] Implementasi retur penjualan
 
