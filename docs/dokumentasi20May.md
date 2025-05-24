@@ -39,8 +39,8 @@
 
 ### 5.1 Form Penjualan
 
--   [ ] Hapus field sales
--   [ ] Validasi data pelanggan tidak boleh kosong
+-   [🟢] Hapus field sales
+-   [🟢] Validasi data pelanggan tidak boleh kosong
 -   [🟢] Rapikan tampilan form
 -   [ ] Reset form di order barang
 -   [ ] Satuan di keranjang belanja
@@ -48,7 +48,7 @@
 ### 5.2 List Penjualan
 
 -   [🟢] Tampilkan list di awal, form setelahnya
--   [ ] Tambah filter list penjualan (filter flag:semua, lunas, terhutang, dan masing2 flag)
+-   [🟢] Tambah filter list penjualan (filter flag:semua, lunas, terhutang, dan masing2 flag)
 -   [ ] Print: tambah kolom satuan
 
 ### 5.3 Pembayaran & Retur

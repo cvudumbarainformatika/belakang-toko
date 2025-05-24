@@ -179,6 +179,7 @@ class PenjualanController extends Controller
     {
         $from = request('from') ? request('from') : date('Y-m-01');
         $to = request('to') ? request('to') : date('Y-m-d');
+        $flag = request('flag');
         $raw = HeaderPenjualan::with([
             'pelanggan',
             // 'detailFifo.masterBarang',
@@ -222,6 +223,17 @@ class PenjualanController extends Controller
         ])
             ->where('no_penjualan', 'like', '%' . request('q') . '%')
             ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->when(request()->has('flag'), function ($q) use ($flag) {
+                if ($flag != 'semua') {
+                    if ($flag == 'draft') {
+                        $q->whereNull('flag');
+                    } else if ($flag == 'piutang') {
+                        $q->whereIn('flag', ['2', '3', '4', '7']);
+                    } else {
+                        $q->where('flag', $flag);
+                    }
+                }
+            })
             ->orderBy('flag', 'asc')
             ->orderBy('id', 'desc')
             ->simplePaginate(request('per_page'));
