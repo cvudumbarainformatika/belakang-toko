@@ -29,8 +29,8 @@
 
 ## 4. Penerimaan Barang
 
--   [ ] Bug di transaksi penerimaan
--   [ ] Bug di tanggal penerimaan, ketika tanggal tidak dipilih ulang tanggalnya akan tersimpan 0000-00-00
+-   [🟢] Bug di transaksi penerimaan
+-   [🟢] Bug di tanggal penerimaan, ketika tanggal tidak dipilih ulang tanggalnya akan tersimpan 0000-00-00
 -   [ ] Aktivasi delete header
 -   [ ] Perbaikan print transaksi
 -   [ ] Tambah master kebijakan supplier
@@ -42,7 +42,7 @@
 -   [🟢] Hapus field sales
 -   [🟢] Validasi data pelanggan tidak boleh kosong
 -   [🟢] Rapikan tampilan form
--   [ ] Reset form di order barang
+-   [🟢] Reset form di order barang
 -   [ ] Satuan di keranjang belanja
 
 ### 5.2 List Penjualan

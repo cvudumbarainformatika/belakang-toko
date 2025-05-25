@@ -82,6 +82,7 @@ class PenerimaanController extends Controller
 
                 // if($request->jumlahorder - $totalbarangdatang === 0){
                     $update = OrderPembelian_r::where('noorder', $request->noorder)->where('kdbarang', $request->kdbarang)->first();
+                    $update->motif = $request->motif;
                     $update->flaging = $request->flagingx;
                     $update->save();
                 // }
@@ -118,8 +119,25 @@ class PenerimaanController extends Controller
                 'suplier',
                 'orderheder',
                 'orderheder.rinci' => function($rinci){
-                    $rinci->select('*','jumlahpo as jumlahpox','hargapo as hargafix',DB::raw('(jumlahpo*hargapo) as subtotal'))
-                    ->with(['mbarang']);
+                    $rinci->select('orderpembelian_r.*', 'jumlahpo as jumlahpox', 'hargapo as hargafix',
+                        DB::raw('(jumlahpo*hargapo) as subtotal'),
+                        DB::raw('p.id as idx'),
+                        DB::raw('COALESCE(SUM(p.jumlah_b), 0) as totalditerima'),
+                        DB::raw('COALESCE(SUM(p.jumlah_datang_b), 0) as totalditerimabias'),
+                        DB::raw('COALESCE(SUM(p.jumlah_rusak_b), 0) as totalbarangrusak'),
+                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0) - COALESCE(SUM(p.jumlah_rusak_b), 0)) as sisajumlahbelumditerimax'),
+                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0) - COALESCE(SUM(p.jumlah_rusak_b), 0)) as sisajumlahbelumditerima'),
+                        DB::raw('\'0\' as itemrusak'))
+                    ->leftJoin('penerimaan_r as p', function($join) {
+                        $join->on('p.kdbarang', '=', 'orderpembelian_r.kdbarang')
+                            ->on('p.noorder', '=', 'orderpembelian_r.noorder');
+                    })
+                    ->with(['mbarang'])
+                    ->groupBy('orderpembelian_r.id', 'orderpembelian_r.noorder', 'orderpembelian_r.kdbarang',
+                        'orderpembelian_r.jumlahpo', 'orderpembelian_r.satuan_b', 'orderpembelian_r.jumlahpo_k',
+                        'orderpembelian_r.satuan_k', 'orderpembelian_r.isi', 'orderpembelian_r.hargapo',
+                        'orderpembelian_r.total', 'orderpembelian_r.user', 'orderpembelian_r.flaging',
+                        'orderpembelian_r.created_at', 'orderpembelian_r.updated_at');
                 },
             ]
         )
