@@ -21,7 +21,7 @@
 -   [ ] Stok Opname:
     -   Perbaikan warna label nama barang
     -   Highlight content
-    -   Penyesuaian content stok sesuai kesepakatan
+    -   🟢 Penyesuaian content stok sesuai kesepakatan
 -   [🟢] Kartu stok barang (fix bug) (Permasalahan Karena tanggal di transaksi tersimpan 0000-00-00 jadi jumlah stok langsung masuk ke sado awal bukan menambah list sebgai transaksi)
 -   [ ] Pencarian di menu stok
 -   [ ] Stok satuan_b dihitung otomatis oleh sistem
@@ -51,12 +51,12 @@
 -   [🟢] Tambah filter list penjualan (filter flag:semua, lunas, terhutang, dan masing2 flag)
 -   [ ] Print: tambah kolom satuan
 
-### 5.3 Pembayaran & Retur
+### 5.3 Pembayaran Cicilan & Retur
 
--   [ ] Fix bug DP di pembayaran cicilan (pembayaran DP harus lunas, boleh ga lunas sih kalo pelanggan, tapi harus punya pelanggan id)
--   [ ] Validasi pembayaran <= total hutang (cek di backend untuk semua hutang dan retur)
--   [ ] Cicilan: kurangi dengan nilai return (ini kalo ada retur jumlah cicilan nya ga ngurangi retur)
--   [ ] Fix bug jumlah return
+-   [🟢] Fix bug DP di pembayaran cicilan (pembayaran DP harus lunas, boleh ga lunas sih kalo pelanggan, tapi harus punya pelanggan id)
+-   [🟢] Validasi pembayaran <= total hutang (cek di backend untuk semua hutang dan retur)
+-   [🟢] Cicilan: kurangi dengan nilai return (ini kalo ada retur jumlah cicilan nya ga ngurangi retur)
+-   [🟢] Fix bug jumlah return
 -   [ ] Implementasi retur penjualan
 
 ## 6. Penyesuaian Stok
