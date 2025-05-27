@@ -243,6 +243,7 @@ class PenerimaanController extends Controller
                             'nopenerimaan' => $value['nopenerimaan'],
                             'idpenerimaan' => $value['id'],
                             'kdbarang' => $value['kdbarang'],
+                             'motif' => $value['motif'],
                             'jumlah_b' => $value['jumlah_b'],
                             'jumlah_k' => $value['jumlah_k'],
                             'isi' => $value['isi'],
