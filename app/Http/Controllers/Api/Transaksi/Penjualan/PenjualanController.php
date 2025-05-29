@@ -97,9 +97,10 @@ class PenjualanController extends Controller
                 [
                     'no_penjualan' => $nota,
                     'kodebarang' => $request->kodebarang,
+                    'motif' => $request->motif,
+                    'jumlah' => $request->jumlah,
                 ],
                 [
-                    'jumlah' => $request->jumlah,
                     'harga_jual' => $request->harga_jual,
                     'harga_beli' => $request->harga_beli,
                     'diskon' => $request->diskon,

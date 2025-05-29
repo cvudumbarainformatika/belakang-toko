@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nopenerimaan')->nullable();
             $table->unsignedBigInteger('idpenerimaan')->nullable();
             $table->string('kdbarang')->nullable();
+            $table->string('motif')->nullable();
             $table->dateTime('tgl_opname')->nullable();
             $table->double('jumlah_b', 24, 2)->default(0);
             $table->double('jumlah_k', 24, 2)->default(0);
