@@ -160,8 +160,11 @@ class PengembalianBarangController extends Controller
             // Validate FIFO returns for each detail
             foreach ($header->details as $detail) {
                 // Get all FIFO records for this item in the sale
-                $penjualanFifos = DetailPenjualanFifo::where('no_penjualan', $header->penjualan->no_penjualan)
+                $penjualanFifos = DetailPenjualanFifo::selectRaw('detail_penjualan_fifos.*')
+                    ->leftJoin('stoks', 'stoks.id', '=', 'detail_penjualan_fifos.stok_id')
+                    ->where('no_penjualan', $header->penjualan->no_penjualan)
                     ->where('kodebarang', $detail->kodebarang)
+                    ->where('motif', $detail->motif)
                     ->orderBy('id', 'asc')  // Ensure we process oldest records first
                     ->get();
 
