@@ -260,7 +260,7 @@ class PenjualanController extends Controller
                     if ($flag == 'draft') {
                         $q->whereNull('flag');
                     } else if ($flag == 'piutang') {
-                        $q->whereIn('flag', ['2', '3', '4', '7']);
+                        $q->whereIn('flag', ['2', '3', '4', '7', '8']);
                     } else {
                         $q->where('flag', $flag);
                     }
@@ -365,6 +365,30 @@ class PenjualanController extends Controller
             'header' => $header,
             'isDeleteHeader' => $isDeleteHeader,
         ], 200);
+    }
+    public function simpanTempo(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+            $data = HeaderPenjualan::find($request->id);
+            if (!$data) {
+                return new JsonResponse(['message' => 'Gagal Menyimpan, data tidak ditemukan'], 410);
+            }
+            $data->update([
+                'tempo' => $request->tempo,
+            ]);
+
+            DB::commit();
+            return new JsonResponse([
+                'message' => 'Data Sudah Disimpan',
+                'data' => $data
+            ], 200);
+        } catch (\Throwable $th) {
+            return new JsonResponse([
+                'message' => 'Gagal Menyimpan, ' . $th->getMessage(),
+                'line' => $th->getLine()
+            ], 410);
+        }
     }
     public function simpanPembayaran(Request $request)
     {

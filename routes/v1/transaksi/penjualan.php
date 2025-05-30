@@ -15,6 +15,7 @@ Route::group([
     Route::post('/delete-detail', [PenjualanController::class, 'hapusDetail']);
 
     Route::post('/simpan-pembayaran', [PenjualanController::class, 'simpanPembayaran']);
+    Route::post('/simpan-tempo', [PenjualanController::class, 'simpanTempo']);
     // list penjualan
     Route::get('/list', [PenjualanController::class, 'getListPenjualan']);
     Route::get('/list-null', [PenjualanController::class, 'getListPenjualanNull']);
