@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('no_penjualan');
             $table->string('kodebarang')->nullable();
             $table->string('motif')->nullable();
+            $table->double('isi', 24, 2)->default(1);
             $table->double('jumlah', 24, 2)->default(0);
             $table->double('harga_beli', 24, 2)->default(0);
             $table->double('harga_jual', 24, 2)->default(0);

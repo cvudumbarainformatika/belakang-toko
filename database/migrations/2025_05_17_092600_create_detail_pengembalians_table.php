@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('no_pengembalian');
             $table->unsignedBigInteger('barang_id');
             $table->string('kodebarang');
+            $table->string('motif');
             $table->integer('qty');
             $table->text('keterangan_rusak')->nullable();
             $table->enum('status', ['pending', 'diganti', 'ditolak'])->default('pending');

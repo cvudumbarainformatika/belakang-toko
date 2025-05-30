@@ -7,7 +7,8 @@ Route::group([
     'middleware' => 'auth:api',
     'prefix' => 'transaksi/penjualan'
 ], function () {
-    Route::get('/list-barang', [PenjualanController::class, 'getBarang']);
+    // Route::get('/list-barang', [PenjualanController::class, 'getBarang']);
+    Route::get('/list-barang', [PenjualanController::class, 'getBarangByStok']);
     Route::get('/list-sales', [PenjualanController::class, 'getSales']);
     Route::get('/list-pelanggan', [PenjualanController::class, 'getPelanggan']);
     Route::post('/simpan-detail', [PenjualanController::class, 'simpanDetail']);

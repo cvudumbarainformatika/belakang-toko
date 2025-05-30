@@ -20,6 +20,36 @@ use Illuminate\Support\Facades\DB;
 
 class PenjualanController extends Controller
 {
+    public function getBarangByStok()
+    {
+        $kodebarang = Barang::select(
+            'kodebarang',
+        )
+            ->whereNull('flaging')
+            ->where(function ($x) {
+                $x->where('namabarang', 'like', '%' . request('q') . '%')
+                    ->orWhere('kodebarang', 'like', '%' . request('q') . '%');
+            })
+
+            ->limit(request('limit'))
+            ->pluck('kodebarang')->toArray();
+        $data = stok::select(
+            'kdbarang',
+            DB::raw('sum(jumlah_k) as jumlah_k'),
+            'harga_beli_k',
+            'isi',
+            'motif',
+            'satuan_k',
+            'satuan_b',
+        )
+            ->whereIn('kdbarang', $kodebarang)
+            ->where('jumlah_k', '>', 0)
+            ->with('barang:kodebarang,namabarang,ukuran,hargajual1,hargajual2,id')
+            ->groupBy('kdbarang', 'motif')
+            ->get();
+
+        return new JsonResponse($data);
+    }
     public function getBarang()
     {
         $data = Barang::select(
@@ -99,6 +129,7 @@ class PenjualanController extends Controller
                     'kodebarang' => $request->kodebarang,
                     'motif' => $request->motif,
                     'jumlah' => $request->jumlah,
+                    'isi' => $request->isi,
                 ],
                 [
                     'harga_jual' => $request->harga_jual,
