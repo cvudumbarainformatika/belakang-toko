@@ -1,11 +1,11 @@
 <?php
 
-use App\Models\OrderPenjualan;
+use App\Http\Controllers\Api\Transaksi\OrderPenjualan\OrderPenjualanController;
 use Illuminate\Support\Facades\Route;
 
 Route::group([
     'middleware' => 'auth:api',
     'prefix' => 'orderpenjualan'
 ], function () {
-    Route::get('/list', [OrderPenjualan::class, 'index']);
+    Route::get('/list', [OrderPenjualanController::class, 'index']);
 });
