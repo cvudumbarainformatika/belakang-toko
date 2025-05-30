@@ -24,7 +24,7 @@ class CicilanController extends Controller
             'pelanggan' => function ($q) {
                 $q->with([
                     'headerPenjualan' => function ($q) {
-                        $q->whereIn('flag', ['2', '3', '4', '7'])
+                        $q->whereIn('flag', ['2', '3', '4', '7', '8'])
                             ->with([
                                 'cicilan',
                                 'headerRetur' => function ($q) {
@@ -48,7 +48,7 @@ class CicilanController extends Controller
             ->when(
                 request('flag') == 'semua',
                 function ($q) {
-                    $q->whereIn('flag', ['2', '3', '4', '7']);
+                    $q->whereIn('flag', ['2', '3', '4', '7', '8']);
                 },
                 function ($q) {
                     $q->where('flag', request('flag'));

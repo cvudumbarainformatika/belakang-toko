@@ -50,6 +50,7 @@ class PengembalianBarangController extends Controller
 
     public function store(Request $request)
     {
+        // return new JsonResponse($request->all());
         $request->validate([
             'penjualan_id' => 'required|exists:header_penjualans,id',
             'keterangan' => 'required|string',
@@ -79,6 +80,7 @@ class PengembalianBarangController extends Controller
                 DetailPengembalian::updateOrCreate([
                     'header_pengembalian_id' => $header->id,
                     'barang_id' => $detail['barang_id'],
+                    'motif' => $detail['motif'],
                 ], [
                     'kodebarang' => $detail['kodebarang'],
                     'qty' => $detail['qty'],
@@ -206,12 +208,14 @@ class PengembalianBarangController extends Controller
 
                 // Get available stocks with jumlah_k > 0
                 $stoks = stok::where('kdbarang', $detail->kodebarang)
+                    ->where('motif', $detail->motif)
                     ->where('jumlah_k', '>', 0)
                     ->orderBy('created_at', 'asc')
                     ->get();
 
                 // Get latest price even if stock is empty
                 $lastHargaBeli = stok::where('kdbarang', $detail->kodebarang)
+                    ->where('motif', $detail->motif)
                     ->orderBy('created_at', 'desc')
                     ->value('harga_beli_k') ?? 0;
 
