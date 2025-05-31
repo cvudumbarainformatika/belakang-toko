@@ -160,7 +160,14 @@ class OrderPenjualanController extends Controller
     {
         return $query->select(
             'id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima','metode_bayar','bayar','tempo','catatan'
-        )->with(['rincians:order_penjualan_id,barang_id,jumlah,harga,satuan,satuans,subtotal', 'rincians.barang:id,namabarang,isi','rincians.barang.images',  'pelanggan:id,nama', 'sales:id,nama']);
+        )->with(['rincians:id,order_penjualan_id,barang_id,jumlah,harga,satuan,satuans,subtotal', 
+        'rincians.barang:id,namabarang,isi,satuan_k,satuan_b',
+        'rincians.barang.images',  
+        'pelanggan:id,nama', 'sales:id,nama']);
 
     }
+
+
+
+
 }

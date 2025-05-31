@@ -8,4 +8,7 @@ Route::group([
     'prefix' => 'orderpenjualan'
 ], function () {
     Route::get('/list', [OrderPenjualanController::class, 'index']);
+    Route::post('/update-rincian', [OrderPenjualanController::class, 'updateRincian']);
+    Route::post('/delete-rincian', [OrderPenjualanController::class, 'deleteRincian']);
+    Route::post('/update-status', [OrderPenjualanController::class, 'updateStatus']);
 });
