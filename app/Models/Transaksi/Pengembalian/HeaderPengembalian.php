@@ -6,6 +6,7 @@ use App\Models\Transaksi\Penjualan\HeaderPenjualan;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class HeaderPengembalian extends Model
 {
@@ -17,6 +18,26 @@ class HeaderPengembalian extends Model
     protected $casts = [
         'tanggal' => 'datetime'
     ];
+
+
+    // Otomatis mengisi created_by dan updated_by
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (Auth::check()) {
+                $model->created_by = Auth::id();
+                $model->updated_by = Auth::id(); // Saat pertama kali buat, dua-duanya sama
+            }
+        });
+
+        static::updating(function ($model) {
+            if (Auth::check()) {
+                $model->updated_by = Auth::id();
+            }
+        });
+    }
 
     // Relationships
     public function penjualan()

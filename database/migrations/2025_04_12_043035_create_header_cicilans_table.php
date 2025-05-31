@@ -18,6 +18,8 @@ return new class extends Migration
             $table->dateTime('tgl_bayar')->nullable();
             $table->double('jumlah', 24, 2)->default(0);
             $table->enum('cara_bayar', ['cash', 'transfer'])->default('cash');
+            $table->unsignedBigInteger('created_by');
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
         });
     }
