@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('pelanggan_id')->nullable();
             $table->unsignedBigInteger('sales_id')->nullable();
             $table->dateTime('tgl')->nullable();
+            $table->date('tempo')->nullable();
             $table->double('total', 24, 2)->default(0);
             $table->double('total_diskon', 24, 2)->default(0);
             $table->double('bayar', 24, 2)->default(0);

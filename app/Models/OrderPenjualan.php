@@ -16,7 +16,7 @@ class OrderPenjualan extends Model
     // Relasi ke User (pelanggan)
     public function pelanggan()
     {
-        return $this->belongsTo(User::class, 'pelanggan_id');
+        return $this->belongsTo(Pelanggan::class, 'pelanggan_id');
     }
 
     // Relasi ke User (sales)

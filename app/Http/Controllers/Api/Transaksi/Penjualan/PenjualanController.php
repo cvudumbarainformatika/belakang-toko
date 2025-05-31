@@ -20,6 +20,36 @@ use Illuminate\Support\Facades\DB;
 
 class PenjualanController extends Controller
 {
+    public function getBarangByStok()
+    {
+        $kodebarang = Barang::select(
+            'kodebarang',
+        )
+            ->whereNull('flaging')
+            ->where(function ($x) {
+                $x->where('namabarang', 'like', '%' . request('q') . '%')
+                    ->orWhere('kodebarang', 'like', '%' . request('q') . '%');
+            })
+
+            ->limit(request('limit'))
+            ->pluck('kodebarang')->toArray();
+        $data = stok::select(
+            'kdbarang',
+            DB::raw('sum(jumlah_k) as jumlah_k'),
+            'harga_beli_k',
+            'isi',
+            'motif',
+            'satuan_k',
+            'satuan_b',
+        )
+            ->whereIn('kdbarang', $kodebarang)
+            ->where('jumlah_k', '>', 0)
+            ->with('barang:kodebarang,namabarang,ukuran,hargajual1,hargajual2,id')
+            ->groupBy('kdbarang', 'motif')
+            ->get();
+
+        return new JsonResponse($data);
+    }
     public function getBarang()
     {
         $data = Barang::select(
@@ -97,9 +127,11 @@ class PenjualanController extends Controller
                 [
                     'no_penjualan' => $nota,
                     'kodebarang' => $request->kodebarang,
+                    'motif' => $request->motif,
+                    'jumlah' => $request->jumlah,
+                    'isi' => $request->isi,
                 ],
                 [
-                    'jumlah' => $request->jumlah,
                     'harga_jual' => $request->harga_jual,
                     'harga_beli' => $request->harga_beli,
                     'diskon' => $request->diskon,
@@ -228,7 +260,7 @@ class PenjualanController extends Controller
                     if ($flag == 'draft') {
                         $q->whereNull('flag');
                     } else if ($flag == 'piutang') {
-                        $q->whereIn('flag', ['2', '3', '4', '7']);
+                        $q->whereIn('flag', ['2', '3', '4', '7', '8']);
                     } else {
                         $q->where('flag', $flag);
                     }
@@ -333,6 +365,30 @@ class PenjualanController extends Controller
             'header' => $header,
             'isDeleteHeader' => $isDeleteHeader,
         ], 200);
+    }
+    public function simpanTempo(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+            $data = HeaderPenjualan::find($request->id);
+            if (!$data) {
+                return new JsonResponse(['message' => 'Gagal Menyimpan, data tidak ditemukan'], 410);
+            }
+            $data->update([
+                'tempo' => $request->tempo,
+            ]);
+
+            DB::commit();
+            return new JsonResponse([
+                'message' => 'Data Sudah Disimpan',
+                'data' => $data
+            ], 200);
+        } catch (\Throwable $th) {
+            return new JsonResponse([
+                'message' => 'Gagal Menyimpan, ' . $th->getMessage(),
+                'line' => $th->getLine()
+            ], 410);
+        }
     }
     public function simpanPembayaran(Request $request)
     {

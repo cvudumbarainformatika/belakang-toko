@@ -30,18 +30,21 @@ class FifoHelper
 
         foreach ($details as $detail) {
             $kodeBarang = $detail->kodebarang;
+            $motif = $detail->motif;
             $jumlah = $detail->jumlah;
             $hargaJual = $detail->harga_jual;
             $diskon = $detail->diskon;
 
             // Get available stocks
             $stoks = stok::where('kdbarang', $kodeBarang)
+                ->where('motif', $motif)
                 ->where('jumlah_k', '>', 0)
                 ->orderBy('created_at', 'asc')
                 ->get();
 
             // Get latest purchase price even if stock is empty
             $lastHargaBeli = stok::where('kdbarang', $kodeBarang)
+                ->where('motif', $motif)
                 ->orderBy('created_at', 'desc')
                 ->value('harga_beli_k') ?? 0;
 

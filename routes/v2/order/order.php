@@ -12,6 +12,9 @@ Route::group([
         Route::post('/penjualan', [OrderPenjualanController::class, 'orderPenjualan']);
         Route::get('/penjualan/by-pelanggan', [OrderPenjualanController::class, 'getByPelanggan']);
         Route::get('/penjualan/by-sales/{sales_id}', [OrderPenjualanController::class, 'getBySales']);
+
+        Route::get('/by-noorder', [OrderPenjualanController::class, 'getByNoOrder']);
+        Route::post('/update-pembayaran', [OrderPenjualanController::class, 'updatePembayaran']);
     });
 });
 

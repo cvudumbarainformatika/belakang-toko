@@ -195,7 +195,13 @@ class ProductController extends Controller
         );
 
 
-        $query->with(['images:kodebarang,gambar,flag_thumbnail', 'views:barang_id,views', 'likes:barang_id,likes']);
+        $query->with(['images:kodebarang,gambar,flag_thumbnail', 'views:barang_id,views', 'likes:barang_id,likes',
+            'stoks'=> function($q){
+                $q->select(
+                    'kdbarang','motif','jumlah_k','isi','satuan_k','satuan_b'
+                )->where('jumlah_k','!=',0);
+            }
+        ]);
         return $query;
     }
 

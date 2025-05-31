@@ -13,6 +13,10 @@ class OrderPenjualanRincian extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'satuans' => 'array',
+    ];
+
     // Relasi ke order penjualan
     public function orderPenjualan()
     {

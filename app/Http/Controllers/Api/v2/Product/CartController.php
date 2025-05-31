@@ -20,23 +20,14 @@ class CartController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $items = CartItem::with('product')
+        $items = CartItem::with($this->eagerLoadProductStoks())
             ->where('user_id', $user->id)
             ->get();
         
             // return $items;
 
         return response()->json([
-            'items' => $items->map(function ($item) {
-                return [
-                    'barang_id' => $item->barang_id,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'name' => $item->product->namabarang,
-                    'image' => $item->product->image,
-                ];
-            }),
-        ]);
+            'items' => $items]);
     }
 
     public function store(Request $request)
@@ -44,37 +35,56 @@ class CartController extends Controller
         $request->validate([
             'barang_id' => 'required|exists:barangs,id',
             'quantity' => 'required|integer|min:1',
-            'price' => 'required|numeric'
+            'price' => 'required|numeric',
+            'subtotal' => 'required|numeric',
+            'image' => 'nullable|string',
+            'satuan' => 'nullable|string',
+            'satuans' => 'nullable|array'
         ]);
 
         $user = Auth::user();
 
-        $item = CartItem::updateOrCreate(
-            ['user_id' => $user->id, 'barang_id' => $request->barang_id],
-            ['quantity' => $request->quantity, 'price' => $request->price]
+        $item = CartItem::create(
+            [
+                'user_id' => $user->id, 
+                'barang_id' => $request->barang_id,
+                'quantity' => $request->quantity, 
+                'price' => $request->price,
+                'subtotal' => $request->subtotal,
+                'image' => $request->image,
+                'satuan' => $request->satuan,
+                'satuans' => $request->satuans,
+            ]
         );
 
-        return response()->json(['success' => true, 'item' => $item]);
+        return response()->json(['success' => true, 
+        'item' => $item->load($this->eagerLoadProductStoks())]);
     }
 
-    public function update(Request $request, Barang $barang)
+    public function update(Request $request, CartItem $cart)
     {
-        $request->validate(['quantity' => 'required|integer|min:1']);
+        $request->validate([
+            'quantity' => 'required|numeric',
+            'price' => 'required|numeric',
+            'subtotal' => 'required|numeric',
+        ]);
 
-        $item = CartItem::where('user_id', $request->user()->id)
-            ->where('barang_id', $barang->id)
-            ->firstOrFail();
+        $item = CartItem::findOrFail($cart->id);
 
-        $item->update(['quantity' => $request->quantity]);
+        $item->update([
+            'quantity' => $request->quantity,
+            'price' => $request->price,
+            'subtotal' => $request->subtotal,
+            ]
+        );
 
         return response()->json(['success' => true]);
     }
 
-    public function destroy(Request $request, Barang $barang)
+    public function destroy(Request $request, CartItem $cart)
     {
         $user = Auth::user();
-        CartItem::where('user_id', $user->id)
-            ->where('barang_id', $barang->id)
+        CartItem::findOrFail($cart->id)
             ->delete();
 
         return response()->json(['success' => true]);
@@ -86,5 +96,33 @@ class CartController extends Controller
         CartItem::where('user_id', $user->id)->delete();
 
         return response()->json(['success' => true, 'message' => 'Semua item keranjang berhasil dihapus.']);
+    }
+
+    protected function eagerLoadProductStoks()
+    {
+        return [
+            'product' => function ($query) {
+                $query->select(
+                    'id', 'kodebarang', 
+                    'namabarang AS name', 
+                    'namagabung', 
+                    'kualitas', 
+                    'brand', 
+                    'satuan_b', 
+                    'satuan_k', 
+                    'kategori AS category', 
+                    'isi', 
+                    'hargajual1 AS price',
+                    'hargajual2', 
+                    'ukuran', 
+                    'kodejenis',
+                    'image'
+                );
+            },
+            'product.stoks' => function ($q) {
+                $q->select('kdbarang', 'motif', 'jumlah_k', 'isi', 'satuan_k', 'satuan_b')
+                ->where('jumlah_k', '!=', 0);
+            }
+        ];
     }
 }

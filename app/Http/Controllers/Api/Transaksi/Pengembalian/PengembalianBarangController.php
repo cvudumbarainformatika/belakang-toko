@@ -50,6 +50,7 @@ class PengembalianBarangController extends Controller
 
     public function store(Request $request)
     {
+        // return new JsonResponse($request->all());
         $request->validate([
             'penjualan_id' => 'required|exists:header_penjualans,id',
             'keterangan' => 'required|string',
@@ -79,6 +80,7 @@ class PengembalianBarangController extends Controller
                 DetailPengembalian::updateOrCreate([
                     'header_pengembalian_id' => $header->id,
                     'barang_id' => $detail['barang_id'],
+                    'motif' => $detail['motif'],
                 ], [
                     'kodebarang' => $detail['kodebarang'],
                     'qty' => $detail['qty'],
@@ -158,8 +160,11 @@ class PengembalianBarangController extends Controller
             // Validate FIFO returns for each detail
             foreach ($header->details as $detail) {
                 // Get all FIFO records for this item in the sale
-                $penjualanFifos = DetailPenjualanFifo::where('no_penjualan', $header->penjualan->no_penjualan)
+                $penjualanFifos = DetailPenjualanFifo::selectRaw('detail_penjualan_fifos.*')
+                    ->leftJoin('stoks', 'stoks.id', '=', 'detail_penjualan_fifos.stok_id')
+                    ->where('no_penjualan', $header->penjualan->no_penjualan)
                     ->where('kodebarang', $detail->kodebarang)
+                    ->where('motif', $detail->motif)
                     ->orderBy('id', 'asc')  // Ensure we process oldest records first
                     ->get();
 
@@ -206,12 +211,14 @@ class PengembalianBarangController extends Controller
 
                 // Get available stocks with jumlah_k > 0
                 $stoks = stok::where('kdbarang', $detail->kodebarang)
+                    ->where('motif', $detail->motif)
                     ->where('jumlah_k', '>', 0)
                     ->orderBy('created_at', 'asc')
                     ->get();
 
                 // Get latest price even if stock is empty
                 $lastHargaBeli = stok::where('kdbarang', $detail->kodebarang)
+                    ->where('motif', $detail->motif)
                     ->orderBy('created_at', 'desc')
                     ->value('harga_beli_k') ?? 0;
 
