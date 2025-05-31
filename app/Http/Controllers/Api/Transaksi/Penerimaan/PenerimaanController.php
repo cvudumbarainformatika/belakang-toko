@@ -50,6 +50,7 @@ class PenerimaanController extends Controller
                     [
                         'noorder' => $request->noorder,
                         'nofaktur' => $request->nofaktur,
+                        'jenis_pembayaran' => $request->pembayaran,
                         'tgl_faktur' => $request->tgl,
                         'kdsupllier' => $request->kdsuplier,
                     ]
