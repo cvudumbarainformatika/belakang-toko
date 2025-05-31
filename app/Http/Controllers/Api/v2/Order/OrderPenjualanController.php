@@ -60,6 +60,8 @@ class OrderPenjualanController extends Controller
                     'jumlah'       => $rincian['jumlah'],
                     'harga'     => $rincian['harga'],
                     'subtotal'  => $rincian['subtotal'],
+                    'satuan'  => $rincian['satuan'],
+                    'satuans'  => $rincian['satuans'],
                 ]);
             }
 
@@ -83,10 +85,9 @@ class OrderPenjualanController extends Controller
     {
         $user = Auth::user();
         $jabatan = $user->kodejabatan;
-
-        $orders = OrderPenjualan::with(['rincians:order_penjualan_id,barang_id,jumlah,harga', 'rincians.barang:id,namabarang', 'pelanggan:id,nama', 'sales:id,nama'])
-            ->select('id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima')
-            ->where(function ($query) use ($user, $jabatan) {
+        
+        $query = OrderPenjualan::query();
+            $query->where(function ($query) use ($user, $jabatan) {
                 if ($jabatan == 3) { // Sales
                     $query->where('sales_id', $user->id);
                 } else { // Pelanggan
@@ -94,8 +95,9 @@ class OrderPenjualanController extends Controller
                 }
             })
             ->orderByDesc('tglorder')
-            ->limit(100)
-            ->get();
+            ->limit(100);
+        $orders = $this->eagerLoadOrder($query)->get();
+        
 
         return response()->json([
             'success' => true,
@@ -115,5 +117,50 @@ class OrderPenjualanController extends Controller
             'success' => true,
             'data' => $orders
         ]);
+    }
+
+    public function getByNoOrder()
+    {
+        $noorder = request('order');
+
+        $order = OrderPenjualan::query();
+        $order->where('noorder',$noorder);
+        $data = $this->eagerLoadOrder($order)->first();
+
+        $result = [
+            'message'=>'success',
+            'data'=> $data
+        ];
+       return response()->json($result);
+    }
+
+    public function updatePembayaran(Request $request)
+    {
+       $noorder = $request->noorder;
+
+       $data = OrderPenjualan::where('noorder', $noorder)->firstOrFail();
+
+       $data->metode_bayar = $request->metode_bayar;
+       $data->bayar = $request->bayar;
+       $data->tempo = $request->tempo;
+       $data->catatan = $request->catatan;
+       $data->status_order = $request->status_order;
+       $data->status_pembayaran = $request->metode_bayar === 'Kredit'? '1':'2';
+
+       $data->save();
+
+        $result = [
+            'message'=>'success',
+            'data'=> $noorder
+        ];
+       return response()->json($result);
+    }
+
+    protected function eagerLoadOrder($query)
+    {
+        return $query->select(
+            'id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima','metode_bayar','bayar','tempo','catatan'
+        )->with(['rincians:order_penjualan_id,barang_id,jumlah,harga,satuan,satuans,subtotal', 'rincians.barang:id,namabarang,isi','rincians.barang.images',  'pelanggan:id,nama', 'sales:id,nama']);
+
     }
 }

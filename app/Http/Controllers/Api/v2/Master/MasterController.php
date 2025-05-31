@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Api\v2\Master;
 
 
 use App\Http\Controllers\Controller;
+use App\Models\Pelanggan;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -28,13 +29,12 @@ class MasterController extends Controller
     }
     public function pelanggan()
     {
-        $query = User::query();
+        $query = Pelanggan::query();
 
-        $query->select('id', 'nama', 'email', 'nohp', 'alamat','avatar','username','jabatan')
+        $query->select('id', 'nama', 'alamat', 'telepon', 'norek','namabank','flaging')
             ->when(request('q'), function ($query) {
                 $query->where('nama', 'like', '%' . request('q') . '%');
             })
-            ->whereNull('kodejabatan')
             ->orderBy('nama', 'ASC');
         $sales = $query->limit(20)->get();
         return response()->json($sales);
