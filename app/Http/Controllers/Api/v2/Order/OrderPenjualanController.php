@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Api\v2\Order;
 
+use App\Events\SendNotificationEvent;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -153,7 +154,23 @@ class OrderPenjualanController extends Controller
             'message'=>'success',
             'data'=> $noorder
         ];
+
+        $event = ['order'=> $data];
+
+        event(new SendNotificationEvent(null,'order-penjualan','order-status',$event));
        return response()->json($result);
+    }
+
+    public function updateSelesai(Request $request)
+    {
+       $data = OrderPenjualan::find($request->id);
+       $data->status_order = $request->status_order;
+        $data->save();
+
+        $event = ['order'=> $data];
+        event(new SendNotificationEvent(null,'order-penjualan','order-status',$event));
+
+       return response()->json($data);
     }
 
     protected function eagerLoadOrder($query)

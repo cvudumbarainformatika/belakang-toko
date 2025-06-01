@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Transaksi\OrderPenjualan;
 
+use App\Events\SendNotificationEvent;
 use App\Helpers\FormatingHelper;
 use App\Http\Controllers\Controller;
 use App\Models\OrderPenjualan;
@@ -90,12 +91,19 @@ class OrderPenjualanController extends Controller
 	{
 	   $order_id = $request->order_id;
 
+	   $status = $request->status_order;
+
 	   $order = OrderPenjualan::find($order_id);
 	   $order->status_order = $request->status_order;
 	   $order->save();
 
+	   if ($status === '5') {
+		# code... INI HARUSNYA KE PENJUALAN AKTUAL
+	   }
+
 	   
 	   $data=['message'=> 'success','order'=>$order];
+    	event(new SendNotificationEvent(null,'order-penjualan','order-status',$data));
 
 	   return new JsonResponse($data);
 
