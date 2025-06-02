@@ -31,7 +31,7 @@
 
 -   [🟢] Bug di transaksi penerimaan
 -   [🟢] Bug di tanggal penerimaan, ketika tanggal tidak dipilih ulang tanggalnya akan tersimpan 0000-00-00
--   [ ] Aktivasi delete header
+-   [🟢] Aktivasi delete header
 -   [ ] Perbaikan print transaksi
 -   [ ] Tambah master kebijakan supplier
 

@@ -9,6 +9,7 @@ use App\Models\Transaksi\Penerimaan\OrderPembelian_r;
 use App\Models\Transaksi\Penerimaan\Penerimaan_h;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class OrderPenerimaanController extends Controller
@@ -38,7 +39,8 @@ class OrderPenerimaanController extends Controller
                 ],
                 [
                     'tglorder' => date('Y-m-d H:i:s'),
-                    'kdsuplier' => $request->kdsuplier
+                    'kdsuplier' => $request->kdsuplier,
+                    'user' => Auth::id(),
                 ]
             );
             $jumlahpo_k = $request->jumlah * $request->isi;
@@ -54,7 +56,7 @@ class OrderPenerimaanController extends Controller
                     'isi' => $request->isi,
                     'hargapo' => $request->harga,
                     'total' => $total,
-                    'user' => '',
+                    'user' => Auth::id(),
                 ]
             );
 
@@ -225,7 +227,7 @@ class OrderPenerimaanController extends Controller
             DB::commit();
 
             $hasil = self::getlistorderhasilbytgl($request->from, $request->to,$request->q,$request->per_page);
-            return $hasil;
+            // return $hasil;
             return new JsonResponse(['message' => 'Data berhasil dihapus', 'result' => $hasil], 200);
         } catch (\Exception $e) {
             DB::rollBack();

@@ -11,6 +11,7 @@ use App\Models\Transaksi\Penerimaan\Penerimaan_h;
 use App\Models\Transaksi\Penerimaan\Penerimaan_r;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
@@ -53,6 +54,7 @@ class PenerimaanController extends Controller
                         'jenis_pembayaran' => $request->pembayaran,
                         'tgl_faktur' => $request->tgl,
                         'kdsupllier' => $request->kdsuplier,
+                        'user' => Auth::id(),
                     ]
                 );
                 // return 'wew';
@@ -78,6 +80,7 @@ class PenerimaanController extends Controller
                         'harga_beli_k' => $hargabelisatuankecil,
                         'subtotal' => $subtotal,
                         'subtotalfix' => $subtotalfix,
+                        'user' => Auth::id(),
                     ]
                 );
 
@@ -153,12 +156,13 @@ class PenerimaanController extends Controller
         $from = request('from').' 00:00:00';
         $to = request('to').' 23:59:59';
 
-        $list = Penerimaan_h::with(
+        $list = Penerimaan_h::select('penerimaan_h.*','penerimaan_h.kdsupllier','suppliers.kodesupl','suppliers.nama')
+        ->leftJoin('suppliers', 'penerimaan_h.kdsupllier', '=', 'suppliers.kodesupl')
+        ->with(
             [
                 'rinci' => function($rincipenerimaan){
                     $rincipenerimaan->with(['mbarang']);
                 },
-                'suplier',
                 'orderheder',
                 'orderheder.rinci' => function($rinci){
                     $rinci->select('orderpembelian_r.*', 'jumlahpo as jumlahpox', 'hargapo as hargafix',
@@ -265,5 +269,85 @@ class PenerimaanController extends Controller
             DB::rollBack();
             return new JsonResponse(['message' => 'ada kesalahan', 'error' => $e], 500);
         }
+    }
+
+    public function hapusall(Request $request)
+    {
+        $cek = Penerimaan_h::where('nopenerimaan', $request->nopenerimaan)->where('kunci', '1')->count();
+        if($cek > 0){
+            return new JsonResponse(['message' => 'Maaf Data ini Sudah Dikunci...!!!'], 500);
+        }else{
+            try {
+                DB::beginTransaction();
+
+                // Hapus rincian penerimaan
+                Penerimaan_r::where('nopenerimaan', $request->nopenerimaan)->delete();
+                OrderPembelian_r::where('noorder', $request->noorder)->update(['flaging' => null]);
+                OrderPembelian_h::where('noorder', $request->noorder)->update(['flaging' => '1']);
+
+                // Hapus header penerimaan
+                Penerimaan_h::where('nopenerimaan', $request->nopenerimaan)->delete();
+
+                DB::commit();
+                $hasil = self::getlistpenerimaanhasilbytgl($request->nopenerimaan,$request->from, $request->to,$request->q,$request->per_page);
+                return new JsonResponse(['message' => 'Data berhasil dihapus','result' => $hasil], 200);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return new JsonResponse(['message' => 'Gagal menghapus data', 'error' => $e->getMessage()], 500);
+            }
+        }
+
+    }
+
+    public static function getlistpenerimaanhasilbytgl($fromx,$tox,$qx)
+    {
+        $q = $qx === null ? '' : $qx;
+        $from = $fromx.' 00:00:00';
+        $to = $tox.' 23:59:59';
+        $per_page = 15;
+        $list = Penerimaan_h::select('penerimaan_h.*','penerimaan_h.kdsupllier','suppliers.kodesupl','suppliers.nama')
+        ->leftJoin('suppliers', 'penerimaan_h.kdsupllier', '=', 'suppliers.kodesupl')
+        ->with(
+            [
+                'rinci' => function($rincipenerimaan){
+                    $rincipenerimaan->with(['mbarang']);
+                },
+                'suplier',
+                'orderheder',
+                'orderheder.rinci' => function($rinci){
+                    $rinci->select('orderpembelian_r.*', 'jumlahpo as jumlahpox', 'hargapo as hargafix',
+                        DB::raw('(jumlahpo*hargapo) as subtotal'),
+                        DB::raw('p.id as idx'),
+                        DB::raw('COALESCE(SUM(p.jumlah_b), 0) as totalditerima'),
+                        DB::raw('COALESCE(SUM(p.jumlah_datang_b), 0) as totalditerimabias'),
+                        DB::raw('COALESCE(SUM(p.jumlah_rusak_b), 0) as totalbarangrusak'),
+                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0) - COALESCE(SUM(p.jumlah_rusak_b), 0)) as sisajumlahbelumditerimax'),
+                        DB::raw('(jumlahpo - COALESCE(SUM(p.jumlah_b), 0) - COALESCE(SUM(p.jumlah_rusak_b), 0)) as sisajumlahbelumditerima'),
+                        DB::raw('\'0\' as itemrusak'))
+                    ->leftJoin('penerimaan_r as p', function($join) {
+                        $join->on('p.kdbarang', '=', 'orderpembelian_r.kdbarang')
+                            ->on('p.noorder', '=', 'orderpembelian_r.noorder');
+                    })
+                    ->with(['mbarang'])
+                    ->groupBy('orderpembelian_r.id', 'orderpembelian_r.noorder', 'orderpembelian_r.kdbarang',
+                        'orderpembelian_r.jumlahpo', 'orderpembelian_r.satuan_b', 'orderpembelian_r.jumlahpo_k',
+                        'orderpembelian_r.satuan_k', 'orderpembelian_r.isi', 'orderpembelian_r.hargapo',
+                        'orderpembelian_r.total', 'orderpembelian_r.user', 'orderpembelian_r.flaging',
+                        'orderpembelian_r.created_at', 'orderpembelian_r.updated_at');
+                },
+            ]
+        )->whereBetween('penerimaan_h.created_at', [
+            $from,
+            $to
+        ])
+        ->when($q, function ($query) use($q) {
+            $query->where(function($x) use($q){
+                $x->where('penerimaan_h.noorder', 'like', '%' . $q. '%')
+                  ->orWhere('suppliers.nama', 'like', '%' . $q . '%')
+                  ->orWhere('penerimaan_h.nopenerimaan', 'like', '%' . $q . '%');
+            });
+        })
+        ->simplePaginate($per_page);
+        return $list;
     }
 }

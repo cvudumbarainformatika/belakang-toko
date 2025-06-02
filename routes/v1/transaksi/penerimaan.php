@@ -12,4 +12,5 @@ Route::group([
     Route::get('/getpenerimaan', [PenerimaanController::class, 'getList']);
 
     Route::post('/kirimstok', [PenerimaanController::class, 'kirimstok']);
+    Route::post('/hapusall', [PenerimaanController::class, 'hapusall']);
 });
