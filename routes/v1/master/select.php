@@ -12,7 +12,7 @@ Route::group([
     Route::get('/master-satuan-filter', [SelectController::class, 'satuan_filter']);
     Route::get('/master-get-brand', [SelectController::class, 'get_brand']);
 
-     Route::get('/master-get-jenis', [SelectController::class, 'get_jenis']);
+    Route::get('/master-get-jenis', [SelectController::class, 'get_jenis']);
 
 
     // ini untuk select yg lain

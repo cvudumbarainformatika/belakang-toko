@@ -143,7 +143,7 @@ class PenjualanController extends Controller
             }
             $total = DetailPenjualan::where('no_penjualan', '=', $nota)->sum('subtotal');
             $totalDiskon = DetailPenjualan::where('no_penjualan', '=', $nota)->sum('diskon');
-            $header = HeaderPenjualan::updateOrCreate(
+            $data = HeaderPenjualan::updateOrCreate(
                 [
                     'no_penjualan' => $nota,
                 ],
@@ -158,6 +158,7 @@ class PenjualanController extends Controller
             if (!$detail) {
                 throw new Exception("Header Tidak Tersimpan", 1);
             }
+            $header = HeaderPenjualan::find($data->id);
             $header->load([
                 'detail' => function ($q) {
                     $q->with([
@@ -190,6 +191,7 @@ class PenjualanController extends Controller
                 'detail' => $detail,
                 'header' => $header,
                 'nota' => $nota,
+                // 'data' => $data,
                 'total' => $total,
             ]);
         } catch (\Throwable $th) {

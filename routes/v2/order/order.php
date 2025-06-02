@@ -15,6 +15,7 @@ Route::group([
 
         Route::get('/by-noorder', [OrderPenjualanController::class, 'getByNoOrder']);
         Route::post('/update-pembayaran', [OrderPenjualanController::class, 'updatePembayaran']);
+        Route::post('/update-selesai', [OrderPenjualanController::class, 'updateSelesai']);
     });
 });
 

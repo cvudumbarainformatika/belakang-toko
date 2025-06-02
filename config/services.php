@@ -42,4 +42,8 @@ return [
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
+
+    'socket' => [
+        'url' => env('SOCKET_URL', 'http://localhost:6001'),
+    ],
 ];

@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Api\v2\Order;
 
+use App\Events\SendNotificationEvent;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -153,14 +154,37 @@ class OrderPenjualanController extends Controller
             'message'=>'success',
             'data'=> $noorder
         ];
+
+        $event = ['order'=> $data];
+
+        event(new SendNotificationEvent(null,'order-penjualan','order-status',$event));
        return response()->json($result);
+    }
+
+    public function updateSelesai(Request $request)
+    {
+       $data = OrderPenjualan::find($request->id);
+       $data->status_order = $request->status_order;
+        $data->save();
+
+        $event = ['order'=> $data];
+        event(new SendNotificationEvent(null,'order-penjualan','order-status',$event));
+
+       return response()->json($data);
     }
 
     protected function eagerLoadOrder($query)
     {
         return $query->select(
             'id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima','metode_bayar','bayar','tempo','catatan'
-        )->with(['rincians:order_penjualan_id,barang_id,jumlah,harga,satuan,satuans,subtotal', 'rincians.barang:id,namabarang,isi','rincians.barang.images',  'pelanggan:id,nama', 'sales:id,nama']);
+        )->with(['rincians:id,order_penjualan_id,barang_id,jumlah,harga,satuan,satuans,subtotal', 
+        'rincians.barang:id,namabarang,isi,satuan_k,satuan_b',
+        'rincians.barang.images',  
+        'pelanggan:id,nama', 'sales:id,nama']);
 
     }
+
+
+
+
 }

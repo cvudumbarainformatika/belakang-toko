@@ -18,6 +18,8 @@ return new class extends Migration
             $table->dateTime('tgl')->nullable();
             $table->double('total', 24, 2)->default(0);
             $table->string('status', 2)->default('');
+            $table->unsignedBigInteger('created_by');
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
         });
     }
