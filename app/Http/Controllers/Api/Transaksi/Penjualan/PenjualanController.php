@@ -378,6 +378,8 @@ class PenjualanController extends Controller
             }
             $data->update([
                 'tempo' => $request->tempo,
+                'tgl_kirim' => $request->tgl_kirim,
+                'jml_tempo' => $request->jml_tempo,
             ]);
 
             DB::commit();
