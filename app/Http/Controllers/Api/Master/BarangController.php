@@ -144,42 +144,57 @@ class BarangController extends Controller
 
         // Transformasi data untuk menambahkan kartustok dan data mentah
         $data->getCollection()->transform(function ($item) use ($awal, $bulanSebelumnya, $akhirBulanSebelumnya) {
+        $searchTrans = request('x') ?? '';
+
         // Hitung saldo awal (sebelum rentang tanggal)
         $saldoAwal = Barang::where('barangs.kodebarang', $item->kodebarang)
             ->selectRaw('
                 (SELECT COALESCE(SUM(jumlah_k), 0) FROM penerimaan_r
                 JOIN penerimaan_h ON penerimaan_h.nopenerimaan = penerimaan_r.nopenerimaan
                 WHERE penerimaan_r.kdbarang = barangs.kodebarang
-                AND penerimaan_h.tgl_faktur < ?)
+                AND penerimaan_h.tgl_faktur < ?
+                ' . (!empty($searchTrans) ? 'AND penerimaan_r.motif LIKE ?' : '') . ')
                 +
                 (SELECT COALESCE(SUM(jumlah_k), 0) FROM penyesuaians
                 WHERE penyesuaians.kdbarang = barangs.kodebarang
-                AND penyesuaians.tgl < ?)
+                AND penyesuaians.tgl < ?
+                ' . (!empty($searchTrans) ? 'AND penyesuaians.nopenyesuaian LIKE ?' : '') . ')
                 -
                 (SELECT COALESCE(SUM(jumlah), 0) FROM detail_penjualan_fifos
                 JOIN header_penjualans ON header_penjualans.no_penjualan = detail_penjualan_fifos.no_penjualan
+                JOIN stoks ON stoks.id = detail_penjualan_fifos.stok_id
                 WHERE detail_penjualan_fifos.kodebarang = barangs.kodebarang
                 AND header_penjualans.tgl < ?
-                AND header_penjualans.flag IN ("2", "3", "4", "5", "7"))
+                AND header_penjualans.flag IN ("2", "3", "4", "5", "7")
+                ' . (!empty($searchTrans) ? 'AND stoks.motif LIKE ?' : '') . ')
                 -
                 (SELECT COALESCE(SUM(qty), 0) FROM detail_pengembalians
                 JOIN header_pengembalians ON header_pengembalians.id = detail_pengembalians.header_pengembalian_id
                 WHERE detail_pengembalians.kodebarang = barangs.kodebarang
-                AND header_pengembalians.tanggal < ?)
+                AND header_pengembalians.tanggal < ?
+                ' . (!empty($searchTrans) ? 'AND detail_pengembalians.motif LIKE ?' : '') . ')
                 +
                 (SELECT COALESCE(SUM(jumlah), 0) FROM detail_retur_penjualans
                 JOIN header_retur_penjualans ON header_retur_penjualans.id = detail_retur_penjualans.header_retur_penjualan_id
                 WHERE detail_retur_penjualans.kodebarang = barangs.kodebarang
                 AND header_retur_penjualans.tgl < ?
-                AND header_retur_penjualans.status = "1") as saldo_awal
-            ', [$awal, $awal, $awal, $awal, $awal])
+                AND header_retur_penjualans.status = "1"
+                ' . (!empty($searchTrans) ? 'AND detail_retur_penjualans.kodebarang LIKE ?' : '') . ') as saldo_awal
+            ', [
+                $awal,
+                $awal,
+                $awal,
+                $awal,
+                $awal,
+                ...(!empty($searchTrans) ? ["%$searchTrans%" , "%$searchTrans%", "%$searchTrans%", "%$searchTrans%", "%$searchTrans%"] : [])
+            ])
             ->first()
             ->saldo_awal ?? 0;
 
         // Gabungkan semua transaksi ke satu array
         $transaksi = [];
 
-        $searchTrans = request('x') ?? '';
+
         // Tambahkan penerimaan (hanya yang kunci = '1' atau tidak null)
         foreach ($item->penerimaan as $penerimaan) {
             if (!is_null($penerimaan->kunci) && $penerimaan->kunci === '1' &&
