@@ -343,22 +343,6 @@ class BarangController extends Controller
                 'isi' => floatval($item->isi ?? 1),
             ]);
 
-            // // Log transaksi untuk debugging
-            // Log::info('Transaksi', [
-            //     'kodebarang' => $item->kodebarang,
-            //     'transaksi' => $transaksi,
-            //     'saldoAwalDebit' => $saldoAwalDebit,
-            //     'saldoAwalKredit' => $saldoAwalKredit,
-            //     'searchTrans' => $searchTrans,
-            //     'components' => [
-            //         'penerimaan' => $penerimaan,
-            //         'penyesuaian' => $penyesuaian,
-            //         'penjualan' => $penjualan,
-            //         'pengembalian' => $pengembalian,
-            //         'retur' => $retur,
-            //     ]
-            // ]);
-            // Tambahkan transaksi ke item
             $item->transaksi = $transaksi;
 
             // Hapus relasi asli untuk mengurangi ukuran respons
