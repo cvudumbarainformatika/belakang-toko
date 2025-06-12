@@ -103,6 +103,20 @@ class BarangController extends Controller
                             'barangs.isi'
                         );
                 },
+                'pengembalian' => function ($query) use ($awal, $akhir) {
+                    $query->join('header_pengembalians', 'header_pengembalians.id','=','detail_pengembalians.header_pengembalian_id')
+                    ->join('barangs', 'barangs.kodebarang', '=', 'detail_pengembalians.kodebarang')
+                    ->whereBetween('header_pengembalians.tanggal', [$awal, $akhir])
+                    ->select(
+                        'header_pengembalians.tanggal',
+                        'header_pengembalians.no_pengembalian as notransaksi',
+                        'header_pengembalians.keterangan',
+                        'header_pengembalians.status',
+                        'detail_pengembalians.kodebarang',
+                        'detail_pengembalians.qty as pengeluaran',
+                        'detail_pengembalians.motif',
+                    );
+                },
                 'penyesuaian' => function ($query) use ($awal, $akhir) {
                     $query->whereBetween('penyesuaians.tgl', [$awal, $akhir])
                         ->select('*');
@@ -147,22 +161,29 @@ class BarangController extends Controller
                 WHERE detail_penjualan_fifos.kodebarang = barangs.kodebarang
                 AND header_penjualans.tgl < ?
                 AND header_penjualans.flag IN ("2", "3", "4", "5", "7"))
+                -
+                (SELECT COALESCE(SUM(qty), 0) FROM detail_pengembalians
+                JOIN header_pengembalians ON header_pengembalians.id = detail_pengembalians.header_pengembalian_id
+                WHERE detail_pengembalians.kodebarang = barangs.kodebarang
+                AND header_pengembalians.tanggal < ?)
                 +
                 (SELECT COALESCE(SUM(jumlah), 0) FROM detail_retur_penjualans
                 JOIN header_retur_penjualans ON header_retur_penjualans.id = detail_retur_penjualans.header_retur_penjualan_id
                 WHERE detail_retur_penjualans.kodebarang = barangs.kodebarang
                 AND header_retur_penjualans.tgl < ?
                 AND header_retur_penjualans.status = "1") as saldo_awal
-            ', [$awal, $awal, $awal, $awal])
+            ', [$awal, $awal, $awal, $awal, $awal])
             ->first()
             ->saldo_awal ?? 0;
 
         // Gabungkan semua transaksi ke satu array
         $transaksi = [];
 
+        $searchTrans = request('x') ?? '';
         // Tambahkan penerimaan (hanya yang kunci = '1' atau tidak null)
         foreach ($item->penerimaan as $penerimaan) {
-            if (!is_null($penerimaan->kunci) && $penerimaan->kunci === '1') {
+            if (!is_null($penerimaan->kunci) && $penerimaan->kunci === '1' &&
+                (empty($searchTrans) || stripos($penerimaan->notransaksi, $searchTrans) !== false || stripos($penerimaan->motif, $searchTrans) !== false)) {
                 $transaksi[] = [
                     'type' => 'penerimaan',
                     'tanggal' => $penerimaan->tanggal,
@@ -176,54 +197,76 @@ class BarangController extends Controller
                 ];
             }
         }
-
         // Tambahkan penjualan
         foreach ($item->penjualan as $penjualan) {
-            $transaksi[] = [
-                'type' => 'penjualan',
-                'tanggal' => $penjualan->tanggal,
-                'notransaksi' => $penjualan->notransaksi,
-                'debit' => 0,
-                'kredit' => floatval($penjualan->pengeluaran),
-                'satuan_k' => $penjualan->satuan_k,
-                'satuan_b' => $penjualan->satuan_b,
-                'seri' => $penjualan->motif,
-                'isi' => floatval($penjualan->isi),
-            ];
+            if (empty($searchTrans) || stripos($penjualan->notransaksi, $searchTrans) !== false || stripos($penjualan->kodebarang, $searchTrans) !== false || stripos($penjualan->motif, $searchTrans) !== false) {
+                $transaksi[] = [
+                    'type' => 'penjualan',
+                    'tanggal' => $penjualan->tanggal,
+                    'notransaksi' => $penjualan->notransaksi,
+                    'debit' => 0,
+                    'kredit' => floatval($penjualan->pengeluaran),
+                    'satuan_k' => $penjualan->satuan_k,
+                    'satuan_b' => $penjualan->satuan_b,
+                    'seri' => $penjualan->motif,
+                    'isi' => floatval($penjualan->isi),
+                ];
+            }
         }
 
         // Tambahkan retur
         foreach ($item->returbarang as $retur) {
-            $transaksi[] = [
-                'type' => 'retur',
-                'tanggal' => $retur->tanggal,
-                'notransaksi' => $retur->notransaksi,
-                'debit' => floatval($retur->penerimaan),
-                'kredit' => 0,
-                'satuan_k' => $item->satuan_k,
-                'satuan_b' => $item->satuan_b,
-                'isi' => floatval($item->isi),
-            ];
+            if (empty($searchTrans) || stripos($retur->notransaksi, $searchTrans) !== false || stripos($retur->kodebarang, $searchTrans) !== false) {
+                $transaksi[] = [
+                    'type' => 'retur',
+                    'tanggal' => $retur->tanggal,
+                    'notransaksi' => $retur->notransaksi,
+                    'debit' => floatval($retur->penerimaan),
+                    'kredit' => 0,
+                    'satuan_k' => $retur->satuan_k,
+                    'satuan_b' => $retur->satuan_b,
+                    'seri' => $retur->motif,
+                    'isi' => floatval($item->isi),
+                ];
+            }
+        }
+        // Tambahkan Pengembalian
+        foreach ($item->pengembalian as $pengembalian) {
+            if (empty($searchTrans) || stripos($pengembalian->notransaksi, $searchTrans) !== false || stripos($pengembalian->motif, $searchTrans) !== false) {
+                $transaksi[] = [
+                    'type' => 'pengembalian',
+                    'tanggal' => $pengembalian->tanggal,
+                    'notransaksi' => $pengembalian->notransaksi,
+                    'debit' => 0,
+                    'kredit' => floatval($pengembalian->pengeluaran),
+                    'satuan_k' => $item->satuan_k,
+                    'satuan_b' => $item->satuan_b,
+                    'seri' => $pengembalian->motif,
+                    'isi' => floatval($item->isi),
+                ];
+            }
         }
 
         // Tambahkan penyesuaian
         foreach ($item->penyesuaian as $penyesuaian) {
-            $debit = floatval($penyesuaian->jumlah_k);
-            $kredit = 0;
-            if ($debit < 0) {
-                $kredit = abs($debit);
-                $debit = 0;
+            if (empty($searchTrans) || stripos($penyesuaian->nopenyesuaian, $searchTrans) !== false || stripos($penyesuaian->kdbarang, $searchTrans) !== false) {
+                $debit = floatval($penyesuaian->jumlah_k);
+                $kredit = 0;
+                if ($debit < 0) {
+                    $kredit = abs($debit);
+                    $debit = 0;
+                }
+                $transaksi[] = [
+                    'type' => 'penyesuaian',
+                    'tanggal' => $penyesuaian->tgl,
+                    'notransaksi' => $penyesuaian->nopenyesuaian,
+                    'debit' => $debit,
+                    'kredit' => $kredit,
+                    'satuan_k' => $item->satuan_k,
+                    'satuan_b' => $item->satuan_b,
+                    'isi' => floatval($item->isi),
+                ];
             }
-            $transaksi[] = [
-                'type' => 'penyesuaian',
-                'tanggal' => $penyesuaian->tgl,
-                'notransaksi' => $penyesuaian->nopenyesuaian,
-                'debit' => $debit,
-                'kredit' => $kredit,
-                'satuan_k' => $item->satuan_k,
-                'satuan_b' => $item->satuan_b,
-                'isi' => floatval($item->isi),
-            ];
         }
 
         // Urutkan transaksi berdasarkan tanggal

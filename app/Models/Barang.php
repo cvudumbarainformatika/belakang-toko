@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Stok\Penyesuaian;
 use App\Models\Stok\stok;
 use App\Models\Transaksi\Penerimaan\Penerimaan_r;
+use App\Models\Transaksi\Pengembalian\DetailPengembalian;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
 use App\Models\Transaksi\Penjualan\DetailReturPenjualan;
 use App\Models\Transaksi\Penjualan\HeaderReturPenjualan;
@@ -51,6 +52,11 @@ class Barang extends Model
         return $this->hasMany(DetailReturPenjualan::class, 'kodebarang', 'kodebarang');
     }
 
+    public function pengembalian()
+    {
+        return $this->hasMany(DetailPengembalian::class, 'kodebarang', 'kodebarang');
+    }
+
     public function views()
     {
        return $this->hasOne(BarangView::class);
@@ -63,7 +69,7 @@ class Barang extends Model
     public function scopeMostViewed($query, $limit = 10)
     {
         return $query->orderBy('view_count', 'desc')->limit($limit);
-    
+
     }
 
     public function penerimaan()
