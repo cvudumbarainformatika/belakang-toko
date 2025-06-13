@@ -296,24 +296,24 @@ class PengembalianBarangController extends Controller
 
             // Update header status
             $header->update([
-                'status' => 'rejected',
+                'status' => 'ditolak',
                 'rejected_by' => auth()->id(),
                 'rejected_at' => Carbon::now()
             ]);
 
             // Update detail status
             foreach ($header->details as $detail) {
-                $detail->update(['status' => 'rejected']);
+                $detail->update(['status' => 'ditolak']);
 
                 // Rollback quantity in FIFO record
-                $penjualanFifo = DetailPenjualanFifo::where('no_penjualan', $header->penjualan->no_penjualan)
-                    ->where('barang_id', $detail->barang_id)
-                    ->first();
+                // $penjualanFifo = DetailPenjualanFifo::where('no_penjualan', $header->penjualan->no_penjualan)
+                //     ->where('barang_id', $detail->barang_id)
+                //     ->first();
 
-                if ($penjualanFifo) {
-                    $penjualanFifo->retur -= $detail->qty;
-                    $penjualanFifo->save();
-                }
+                // if ($penjualanFifo) {
+                //     $penjualanFifo->retur -= $detail->qty;
+                //     $penjualanFifo->save();
+                // }
             }
 
             DB::commit();

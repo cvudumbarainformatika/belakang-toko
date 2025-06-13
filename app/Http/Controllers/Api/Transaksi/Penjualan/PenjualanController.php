@@ -225,6 +225,7 @@ class PenjualanController extends Controller
                     DB::raw('sum(jumlah) as jumlah'),
                     DB::raw('sum(subtotal) as subtotal'),
                     DB::raw('sum(diskon) as diskon'),
+                    DB::raw('sum(retur) as retur'),
                 )
                     ->groupBy('kodebarang', 'no_penjualan')
                     ->with(['masterBarang'])
@@ -253,7 +254,21 @@ class PenjualanController extends Controller
                 ]);
             },
             'sales',
-            'keterangan'
+            'keterangan',
+            'headerRetur.detail',
+            // 'detailRetur' => function ($q) {
+            //     $q->select(
+            //         'status',
+            //         'detail_retur_penjualans.no_penjualan',
+            //         'kodebarang',
+            //         'harga_jual',
+            //         DB::raw('sum(jumlah) as jumlah'),
+            //         DB::raw('sum(subtotal) as subtotal'),
+            //     )
+            //         ->leftJoin('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
+            //         ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan')
+            //     ;
+            // },
         ])
             ->where('no_penjualan', 'like', '%' . request('q') . '%')
             ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
