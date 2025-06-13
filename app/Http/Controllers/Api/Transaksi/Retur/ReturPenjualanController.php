@@ -85,6 +85,7 @@ class ReturPenjualanController extends Controller
                         ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan')
                     ;
                 },
+                'headerRetur.detail',
                 'draftRetur' => function ($q) {
                     $q->where('status', '');
                 }
@@ -112,7 +113,7 @@ class ReturPenjualanController extends Controller
                 $headRetur = HeaderReturPenjualan::where('no_penjualan', $request->no_penjualan)->where('status', '')->first();
                 if (!$headRetur) {
                     return new JsonResponse([
-                        'message' => 'Data Tidak Ditemukan',
+                        'message' => 'Data Tidak Ditemukan, retur hanya bisa dilakukan sekali untuk satu nomor nota penjualan',
                     ], 410);
                 }
                 $noretur = $headRetur->no_retur;
@@ -151,6 +152,7 @@ class ReturPenjualanController extends Controller
                 'sales',
                 'detail.masterBarang',
                 'keterangan',
+                'headerRetur.detail',
                 'detailRetur' => function ($q) {
                     $q->select(
                         'status',
@@ -261,6 +263,7 @@ class ReturPenjualanController extends Controller
                         ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan')
                     ;
                 },
+                'headerRetur.detail',
                 'draftRetur' => function ($q) {
                     $q->where('status', '');
                 }
