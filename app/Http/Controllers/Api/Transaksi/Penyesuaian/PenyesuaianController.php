@@ -100,6 +100,7 @@ class PenyesuaianController extends Controller
                         'kdbarang' => $request->kdbarang,
                         'stok_id' => $request->stok_id,
                         'jumlah_k' => $request->jumlah_k,
+                        'motif' => $request->motif,
                         'keterangan' => $request->keterangan,
                         'tgl' => $request->tgl,
                     ]
