@@ -214,6 +214,7 @@ class PenjualanController extends Controller
         $from = request('from') ? request('from') : date('Y-m-01');
         $to = request('to') ? request('to') : date('Y-m-d');
         $flag = request('flag');
+
         $raw = HeaderPenjualan::with([
             'pelanggan',
             // 'detailFifo.masterBarang',
@@ -270,7 +271,20 @@ class PenjualanController extends Controller
             //     ;
             // },
         ])
-            ->where('no_penjualan', 'like', '%' . request('q') . '%')
+            ->when(request('q'), function ($q) {
+                $pelId = Pelanggan::where('nama', 'like', '%' . request('q') . '%')->pluck('id')->toArray();
+                $idFromKet = KeteranganPelanggan::where('nama', 'like', '%' . request('q') . '%')->pluck('header_penjualan_id')->toArray();
+                $q->where(function ($x) use ($pelId, $idFromKet) {
+                    $x->where('no_penjualan', 'like', '%' . request('q') . '%')
+                        ->when(sizeof($pelId) > 0, function ($c) use ($pelId) {
+                            $c->orWhereIn('pelanggan_id', $pelId);
+                        })
+                        ->when(sizeof($idFromKet) > 0, function ($c) use ($idFromKet) {
+                            $c->orWhereIn('id', $idFromKet);
+                        });
+                });
+            })
+
             ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->when(request()->has('flag'), function ($q) use ($flag) {
                 if ($flag != 'semua') {
