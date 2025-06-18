@@ -108,7 +108,7 @@ class ReturPenjualanController extends Controller
         DB::beginTransaction();
         try {
             $strNo = explode('-', $request->no_penjualan);
-            $count = HeaderReturPenjualan::where('no_penjualan', $request->no_penjualan)->count();
+            $count = HeaderReturPenjualan::where('no_penjualan', $request->no_penjualan)->where('status', '')->count();
             if ((int)$count > 0) {
                 $headRetur = HeaderReturPenjualan::where('no_penjualan', $request->no_penjualan)->where('status', '')->first();
                 if (!$headRetur) {
