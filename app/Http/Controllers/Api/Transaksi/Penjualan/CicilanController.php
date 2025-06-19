@@ -36,6 +36,7 @@ class CicilanController extends Controller
             },
             'sales',
             'cicilan',
+            'keterangan',
             'detail.masterBarang',
             'headerRetur' => function ($q) {
                 $q->where('status', '!=', '')
@@ -168,7 +169,9 @@ class CicilanController extends Controller
 
         // kemmbalikan flag menjadi 2
         HeaderPenjualan::find($request->id)->update(['flag' => '2']);
-        $hutang = HeaderPenjualan::where('pelanggan_id', $request->pelanggan_id)->whereIn('flag', ['2', '3', '4'])->orderBy('no_penjualan', 'asc')->get();
+        $hutang = HeaderPenjualan::where('pelanggan_id', $request->pelanggan_id)->whereIn('flag', ['2', '3', '4'])
+            ->orderBy('no_penjualan', 'asc')
+            ->get();
 
         $jumlahCicilan = $request->jumlah;
         $headerCicilan = HeaderCicilan::create([

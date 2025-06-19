@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\KeteranganPelanggan;
 use App\Models\Pelanggan;
 use App\Models\Stok\stok;
+use App\Models\Transaksi\Penjualan\DetailPenjualan;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
 use App\Models\Transaksi\Penjualan\DetailReturPenjualan;
 use App\Models\Transaksi\Penjualan\HeaderPenjualan;
@@ -78,13 +79,15 @@ class ReturPenjualanController extends Controller
                         'detail_retur_penjualans.no_penjualan',
                         'kodebarang',
                         'harga_jual',
+                        'detail_penjualan_id',
                         DB::raw('sum(jumlah) as jumlah'),
                         DB::raw('sum(subtotal) as subtotal'),
                     )
                         ->leftJoin('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
-                        ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan')
+                        ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan', 'detail_penjualan_id', 'header_retur_penjualan_id')
                     ;
                 },
+                'headerRetur.detail',
                 'draftRetur' => function ($q) {
                     $q->where('status', '');
                 }
@@ -106,19 +109,32 @@ class ReturPenjualanController extends Controller
         ]);
         DB::beginTransaction();
         try {
+            // cek jumlah retur, tidak boleh lebih dari jumlah penjualan, ga jadi ini harus ngecek jumlah retur juga, biar di front aja restriksinya
+            // $det = DetailPenjualan::find($request->id);
+            // if (!$det) {
+            //     return new JsonResponse(['message' => 'Gagal Menyimpan, data tidak ditemukan'], 410);
+            // }
+            // if ((float)$request->retur)
+            //     return new JsonResponse([
+            //         'det' => $det
+            //     ]);
             $strNo = explode('-', $request->no_penjualan);
             $count = HeaderReturPenjualan::where('no_penjualan', $request->no_penjualan)->count();
             if ((int)$count > 0) {
                 $headRetur = HeaderReturPenjualan::where('no_penjualan', $request->no_penjualan)->where('status', '')->first();
                 if (!$headRetur) {
-                    return new JsonResponse([
-                        'message' => 'Data Tidak Ditemukan',
-                    ], 410);
+                    $noretur = $strNo[0] . '-' . str_pad($count + 1, 2, '0', STR_PAD_LEFT) . '-' . date('ymd') . '-RTR';
+                    $headRetur = HeaderReturPenjualan::firstOrCreate([
+                        'no_retur' => $noretur,
+                        'no_penjualan' => $request->no_penjualan,
+                        'tgl' => date('Y-m-d H:i:s'),
+                    ]);
+                } else {
+                    $noretur = $headRetur->no_retur;
                 }
-                $noretur = $headRetur->no_retur;
             } else {
                 $noretur = $strNo[0] . '-' . str_pad($count + 1, 2, '0', STR_PAD_LEFT) . '-' . date('ymd') . '-RTR';
-                $headRetur = HeaderReturPenjualan::create([
+                $headRetur = HeaderReturPenjualan::firstOrCreate([
                     'no_retur' => $noretur,
                     'no_penjualan' => $request->no_penjualan,
                     'tgl' => date('Y-m-d H:i:s'),
@@ -151,17 +167,19 @@ class ReturPenjualanController extends Controller
                 'sales',
                 'detail.masterBarang',
                 'keterangan',
+                'headerRetur.detail',
                 'detailRetur' => function ($q) {
                     $q->select(
                         'status',
                         'detail_retur_penjualans.no_penjualan',
                         'kodebarang',
                         'harga_jual',
+                        'detail_penjualan_id',
                         DB::raw('sum(jumlah) as jumlah'),
                         DB::raw('sum(subtotal) as subtotal'),
                     )
                         ->leftJoin('header_retur_penjualans', 'header_retur_penjualans.id', '=', 'detail_retur_penjualans.header_retur_penjualan_id')
-                        ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan')
+                        ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan', 'detail_penjualan_id', 'header_retur_penjualan_id')
                     ;
                 },
                 'draftRetur' => function ($q) {
@@ -261,6 +279,7 @@ class ReturPenjualanController extends Controller
                         ->groupBy('kodebarang', 'detail_retur_penjualans.no_penjualan')
                     ;
                 },
+                'headerRetur.detail',
                 'draftRetur' => function ($q) {
                     $q->where('status', '');
                 }
