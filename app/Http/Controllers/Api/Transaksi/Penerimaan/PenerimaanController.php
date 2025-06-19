@@ -55,6 +55,8 @@ class PenerimaanController extends Controller
                         'tgl_faktur' => $request->tgl,
                         'kdsupllier' => $request->kdsuplier,
                         'user' => Auth::id(),
+                        'jumlahharitempo' => $request->jumlahharitempo,
+                        'tgljatuhtempo' => $request->tgljthtempo,
                     ]
                 );
                 // return 'wew';
@@ -197,6 +199,7 @@ class PenerimaanController extends Controller
                   ->orWhere('penerimaan_h.nopenerimaan', 'like', '%' . request('q') . '%');
             });
         })
+        ->orderBy('id', 'desc')
         ->simplePaginate(request('per_page'));
         return new JsonResponse($list);
     }
