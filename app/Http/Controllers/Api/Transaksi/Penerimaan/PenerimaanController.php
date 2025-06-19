@@ -117,7 +117,9 @@ class PenerimaanController extends Controller
 
     public static function getlistpenerimaanhasil($nopenerimaan)
     {
-        $list = Penerimaan_h::with(
+        $list = Penerimaan_h::select('penerimaan_h.*','penerimaan_h.kdsupllier','suppliers.kodesupl','suppliers.nama')
+        ->leftJoin('suppliers', 'penerimaan_h.kdsupllier', '=', 'suppliers.kodesupl')
+        ->with(
             [
                 'rinci' => function($rincipenerimaan){
                     $rincipenerimaan->with(['mbarang']);
@@ -165,6 +167,7 @@ class PenerimaanController extends Controller
                 'rinci' => function($rincipenerimaan){
                     $rincipenerimaan->with(['mbarang']);
                 },
+                'suplier',
                 'orderheder',
                 'orderheder.rinci' => function($rinci){
                     $rinci->select('orderpembelian_r.*', 'jumlahpo as jumlahpox', 'hargapo as hargafix',
