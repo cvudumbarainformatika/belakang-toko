@@ -14,11 +14,19 @@ class LaporanPenjualanController extends Controller
         $awal=request('tglawal', 'Y-m-d');
         $akhir=request('tglakhir', 'Y-m-d');
         $data = HeaderPenjualan::whereBetween('header_penjualans.tgl', [$awal. ' 00:00:00', $akhir. ' 23:59:59'])
-        ->join('pelanggans', 'pelanggans.id', '=', 'header_penjualans.pelanggan_id')
-        ->join('users', 'users.id', '=', 'header_penjualans.sales_id')
+        ->leftJoin('pelanggans', 'pelanggans.id', '=', 'header_penjualans.pelanggan_id')
+        ->leftJoin('users', 'users.id', '=', 'header_penjualans.sales_id')
+        ->when(request('sales'), function($x) {
+            $x->where('header_penjualans.sales_id', request('sales'));
+        })
+        ->when(request('jnsbayar'), function($x) {
+            $x->where('header_penjualans.flag', request('jnsbayar'));
+        })
         ->when(request('q'), function($x) {
             $x->where('header_penjualans.no_penjualan', 'like', '%' . request('q') . '%')
-            ->orWhere('header_penjualans.tgl', 'like', '%' . request('q') . '%');
+            ->orWhere('header_penjualans.tgl', 'like', '%' . request('q') . '%')
+            ->orWhere('pelanggans.nama', 'like', '%' . request('q') . '%')
+            ->orWhere('users.nama', 'like', '%' . request('q') . '%');
         })
         ->select(
             'header_penjualans.*',
@@ -32,6 +40,8 @@ class LaporanPenjualanController extends Controller
                 'detail_penjualans.*',
                 'barangs.namabarang',
                 'barangs.kategori',
+                'barangs.satuan_k',
+                'barangs.satuan_b',
             );
         })
         ->groupBy('header_penjualans.no_penjualan')
