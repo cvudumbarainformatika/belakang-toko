@@ -9,7 +9,8 @@ Route::group([
 ], function () {
     Route::get('/list', [PembayaranHutangController::class, 'index']);
     Route::get('/list-hutang', [PembayaranHutangController::class, 'listhutang']);
-      Route::get('/listbynopembayaran', [PembayaranHutangController::class, 'listbynopembayaran']);
+    Route::get('/listbynopembayaran', [PembayaranHutangController::class, 'listbynopembayaran']);
 
     Route::post('/simpan', [PembayaranHutangController::class, 'simpan']);
+    Route::post('/hapusrincian', [PembayaranHutangController::class, 'hapusrincian']);
 });

@@ -17,6 +17,8 @@ class PembayaranHutangController extends Controller
 {
     public function index()
     {
+        $from = request('from');
+        $to = request('to');
         $data = pembayaranhutang_h::with(
             [
                 'rinci' => function($rinci){
@@ -24,7 +26,10 @@ class PembayaranHutangController extends Controller
                 },
                 'supplier'
             ]
-        )
+        )->whereBetween('tgl_bayar', [
+            $from,
+            $to
+        ])
         ->orderBy('id', 'desc')
         ->simplePaginate(request('per_page'));
         return new JsonResponse($data);
@@ -153,6 +158,29 @@ class PembayaranHutangController extends Controller
         ->orderBy('tgljatuhtempo', 'asc')
         ->get();
         return $data;
+    }
+
+    public function hapusrincian(Request $request)
+    {
+        $nopembayaran = $request->notrans;
+        try {
+            DB::beginTransaction();
+                $data = pembayaranhutang_r::where('id', request('id'))->delete();
+
+            DB::commit();
+            $hasil = self::getlistpembayaranbynotrans($nopembayaran);
+             return new JsonResponse([
+                'message' => 'Data Berhasil Disimpan',
+                'data' => $hasil
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return new JsonResponse([
+                'message' => 'Terjadi Kesalahan ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 410);
+        }
     }
 
 }
