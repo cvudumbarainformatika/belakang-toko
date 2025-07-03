@@ -7,6 +7,7 @@ Route::group([
     'prefix' => 'master/pelanggan'
 ], function () {
     Route::get('/listpelanggan', [PelangganController::class, 'listpelanggan']);
+    Route::get('/listpelangganall', [PelangganController::class, 'listpelangganall']);
     Route::post('/simpan', [PelangganController::class, 'simpan']);
     Route::post('/hapus', [PelangganController::class, 'hapus']);
 });
