@@ -138,4 +138,30 @@ class NotaSalesController extends Controller
             ], 410);
         }
     }
+
+    public function hapusrincian(Request $request)
+    {
+        $nopembayaran = $request->notrans;
+        try {
+            DB::beginTransaction();
+                $data = notasales_r::where('id', request('id'))->delete();
+                $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
+                $flagpenjualan->flag_sales = null;
+                $flagpenjualan->save();
+
+            DB::commit();
+            $hasil = self::getlistbynotrans($nopembayaran);
+             return new JsonResponse([
+                'message' => 'Data Berhasil Disimpan',
+                'data' => $hasil
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return new JsonResponse([
+                'message' => 'Terjadi Kesalahan ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 410);
+        }
+    }
 }
