@@ -67,21 +67,42 @@ class NotaSalesController extends Controller
 
     public function caripiutang()
     {
-        $data = HeaderPenjualan::with([
+        if(request('keterangan') === 'Dipinjam'){
+           $data = HeaderPenjualan::with([
             'pelanggan',
             'sales',
             'detail' => function ($q) {
                 $q->with(['masterBarang']);
             },
-        ])
-        ->where(function ($q) {
-            $q->where('flag_sales', '!=', '1')
-            ->orWhereNull('flag_sales');
-        })
-        ->whereIn('flag', ['2', '3', '7'])
-        ->orderBy('tempo', 'asc')
-        ->get();
-        return new JsonResponse($data);
+            ])
+            ->where(function ($q) {
+                $q->where('flag_sales', '!=', '1')
+                ->orWhereNull('flag_sales');
+            })
+            ->whereIn('flag', ['2', '3', '7'])
+            ->orderBy('tempo', 'asc')
+            ->get();
+            return new JsonResponse($data);
+        }else{
+            $data = HeaderPenjualan::leftJoin('notasales_r', 'notasales_r.notaPenjualan', '=', 'header_penjualans.no_penjualan')
+            ->leftJoin('notasales_h', 'notasales_h.notrans', '=', 'notasales_r.notrans')
+            ->with([
+                'pelanggan',
+                'sales',
+                'detail' => function ($q) {
+                    $q->with(['masterBarang']);
+                },
+                ])
+                ->where(function ($q) {
+                    $q->where('flag_sales','1');
+                })
+                ->where('notasales_h.kdsales', request('kdsales'))
+                // ->whereIn('flag', ['2', '3', '7'])
+                ->orderBy('tempo', 'asc')
+                ->get();
+                return new JsonResponse($data);
+        }
+
     }
 
     public function simpan(Request $request)
@@ -116,11 +137,11 @@ class NotaSalesController extends Controller
                     'terbayar' => $request->terbayar,
                 ]
             );
-
-            $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
-            $flagpenjualan->flag_sales = '1';
-            $flagpenjualan->save();
-
+            if($request->keterangan === 'Dipinjam'){
+                $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
+                $flagpenjualan->flag_sales = $request->keterangan === 'Dipinjam' ? '1' : null;
+                $flagpenjualan->save();
+            }
             DB::commit();
             $hasil = self::getlistbynotrans($notrans);
                 return new JsonResponse([
@@ -146,7 +167,7 @@ class NotaSalesController extends Controller
             DB::beginTransaction();
                 $data = notasales_r::where('id', request('id'))->delete();
                 $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
-                $flagpenjualan->flag_sales = null;
+                $flagpenjualan->flag_sales = $request->keterangan === 'Dipinjam' ? null : '1';
                 $flagpenjualan->save();
 
             DB::commit();
