@@ -11,4 +11,5 @@ Route::group([
     Route::get('/caripiutang', [NotaSalesController::class, 'caripiutang']);
     Route::post('/simpan', [NotaSalesController::class, 'simpan']);
     Route::post('/hapusrincian', [NotaSalesController::class, 'hapusrincian']);
+    Route::post('/kunci', [NotaSalesController::class, 'kunci']);
 });

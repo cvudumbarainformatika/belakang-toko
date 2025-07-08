@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\Transaksi\NotaSales;
 use App\Http\Controllers\Controller;
 use App\Models\Transaksi\NotaSales\notasales_h;
 use App\Models\Transaksi\NotaSales\notasales_r;
+use App\Models\Transaksi\Penjualan\HeaderCicilan;
 use App\Models\Transaksi\Penjualan\HeaderPenjualan;
+use App\Models\Transaksi\Penjualan\PembayaranCicilan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -74,6 +76,9 @@ class NotaSalesController extends Controller
             'detail' => function ($q) {
                 $q->with(['masterBarang']);
             },
+            'cicilan' => function ($q) {
+                    $q->select('no_penjualan', DB::raw('sum(jumlah) as jumlah'))->groupBy('no_penjualan');
+                }
             ])
             ->where(function ($q) {
                 $q->where('flag_sales', '!=', '1')
@@ -92,11 +97,16 @@ class NotaSalesController extends Controller
                 'detail' => function ($q) {
                     $q->with(['masterBarang']);
                 },
+                'cicilan' => function ($q) {
+                    $q->select('no_penjualan', DB::raw('sum(jumlah) as jumlah'))->groupBy('no_penjualan');
+                }
                 ])
                 ->where(function ($q) {
                     $q->where('flag_sales','1');
                 })
                 ->where('notasales_h.kdsales', request('kdsales'))
+                ->where('kunci', '1')
+                ->groupBy('header_penjualans.no_penjualan')
                 // ->whereIn('flag', ['2', '3', '7'])
                 ->orderBy('tempo', 'asc')
                 ->get();
@@ -133,6 +143,7 @@ class NotaSalesController extends Controller
                     'tgljatuhtempo' => $request->tgljatuhtempo,
                     'lamatempo' => $request->lamatempo,
                     'total' => $request->total,
+                    'flagbayar' => $request->bayar,
                     'user' => Auth::id(),
                     'terbayar' => $request->terbayar,
                 ]
@@ -141,7 +152,55 @@ class NotaSalesController extends Controller
                 $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
                 $flagpenjualan->flag_sales = $request->keterangan === 'Dipinjam' ? '1' : null;
                 $flagpenjualan->save();
+            }else{
+                if($request->yangakandibayar + $request->terbayar > $request->total){
+                    return new JsonResponse(['message' => 'Jumlah Yang Dibayar Melebihi Total...!!!'], 500);
+                }else{
+                    $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
+                    $flagpenjualan->flag_sales = null;
+                    $flagpenjualan->save();
+
+                    if($request->bayar === true){
+                        $cari = HeaderCicilan::where('nopembayaran', $notrans)->first();
+                        if($cari !== null)
+                        {
+                            PembayaranCicilan::create([
+                                'no_penjualan' => $request->notaPenjualan,
+                                // 'tgl_bayar' => $cicilan->tgl_bayar,
+                                'header_ciclan_id' => $cari->id,
+                                'cara_bayar' => $request->carabayarrinci,
+                                'keterangan' => $request->keteranganrinci,
+                                'jumlah' => $request->yangakandibayar,
+                            ]);
+                        }else{
+                            $cicilan = HeaderCicilan::create([
+                                'pelanggan_id' => $request->pelanggan_id,
+                                'sales_id' => $request->kdsales,
+                                'cara_bayar' => 'Penagihan Sales', // 1 = lewat penagihan sales,keterangan di tabel rincian
+                                // 'jumlah' => $request->terbayar,
+                                'tgl_bayar' => date('Y-m-d H:i:s'),
+                                'nopembayaran' => $notrans,
+                            ]);
+                            PembayaranCicilan::create([
+                                'no_penjualan' => $request->notaPenjualan,
+                                // 'tgl_bayar' => $cicilan->tgl_bayar,
+                                'header_ciclan_id' => $cicilan->id,
+                                'cara_bayar' => $request->carabayarrinci,
+                                'keterangan' => $request->keteranganrinci,
+                                'jumlah' => $request->yangakandibayar,
+                            ]);
+                        }
+                    }
+                    if($request->yangakandibayar + $request->terbayar === $request->total)
+                    {
+                        $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
+                        $flagpenjualan->flag = '5';
+                        $flagpenjualan->save();
+                    }
+                }
             }
+
+
             DB::commit();
             $hasil = self::getlistbynotrans($notrans);
                 return new JsonResponse([
@@ -163,26 +222,73 @@ class NotaSalesController extends Controller
     public function hapusrincian(Request $request)
     {
         $nopembayaran = $request->notrans;
-        try {
-            DB::beginTransaction();
-                $data = notasales_r::where('id', request('id'))->delete();
-                $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
-                $flagpenjualan->flag_sales = $request->keterangan === 'Dipinjam' ? null : '1';
-                $flagpenjualan->save();
+        $cek = notasales_h::where('notrans', $nopembayaran)->where('kunci', '1')->count();
+        if($cek > 0){
+            return new JsonResponse(['message' => 'Maaf Data ini Sudah Dikunci...!!!'], 500);
+        }else{
+            try {
+                DB::beginTransaction();
+                    $cek = notasales_r::where('id', $request->id)->where('flagbayar', '1')->count();
+                    if($cek > 0){
+                        PembayaranCicilan::select('pembayaran_cicilans.*')
+                        ->leftJoin('header_cicilans', 'header_cicilans.id', '=', 'pembayaran_cicilans.header_ciclan_id')
+                        ->where('header_cicilans.nopembayaran', $nopembayaran)
+                        ->where('pembayaran_cicilans.no_penjualan', $request->notaPenjualan)->delete();
 
-            DB::commit();
-            $hasil = self::getlistbynotrans($nopembayaran);
-             return new JsonResponse([
-                'message' => 'Data Berhasil Disimpan',
-                'data' => $hasil
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return new JsonResponse([
-                'message' => 'Terjadi Kesalahan ' . $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ], 410);
+                        $ceklagi = PembayaranCicilan::select('pembayaran_cicilans.*')
+                        ->leftJoin('header_cicilans', 'header_cicilans.id', '=', 'pembayaran_cicilans.header_ciclan_id')
+                        ->where('header_cicilans.nopembayaran', $nopembayaran)
+                        ->count();
+                        if($ceklagi === 0){
+                            HeaderCicilan::where('nopembayaran', $nopembayaran)->delete();
+                        }
+                    }
+                    $data = notasales_r::where('id', $request->id)->delete();
+                    $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
+                    $flagpenjualan->flag_sales = '1';
+                    $flagpenjualan->save();
+
+                    $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->where('flag', '5')->count();
+                    if($flagpenjualan > 0){
+                        $flagpenjualan = HeaderPenjualan::where('no_penjualan', $request->notaPenjualan)->first();
+                        $flagpenjualan->flag = '2';
+                        $flagpenjualan->save();
+                    }
+                DB::commit();
+                $hasil = self::getlistbynotrans($nopembayaran);
+                return new JsonResponse([
+                    'message' => 'Data Berhasil Disimpan',
+                    'data' => $hasil
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return new JsonResponse([
+                    'message' => 'Terjadi Kesalahan ' . $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ], 410);
+            }
         }
+    }
+
+    public function kunci(Request $request)
+    {
+
+            $cari = notasales_h::where('notrans', $request->notrans)->first();
+            if($cari->kunci === '1'){
+                return new JsonResponse(['message' => 'Maaf Data ini Sudah Dikunci...!!!'], 500);
+            }else{
+                $cari->kunci = '1';
+                $cari->save();
+                $hasil = self::getlistbynotrans($request->notrans);
+
+                return new JsonResponse(
+                [
+                    'message' =>'Data Berhasil Dikunci...!!!',
+                    'result' => $hasil
+                ], 200);
+            }
+
+
     }
 }
