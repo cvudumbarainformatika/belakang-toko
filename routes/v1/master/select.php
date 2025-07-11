@@ -17,4 +17,6 @@ Route::group([
 
     // ini untuk select yg lain
     Route::get('/master-barang-filter', [SelectController::class, 'barang_filter']);
+    Route::get('/master-beban', [SelectController::class, 'selectbeban']);
+
 });
