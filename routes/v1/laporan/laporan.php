@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Laporan\LaporanPenerimaanController;
+use App\Http\Controllers\Api\Laporan\LaporanPengeluaranController;
 use App\Http\Controllers\Api\Laporan\LaporanPenjualanController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,5 +17,14 @@ Route::group([
     'prefix' => 'laporan/penjualan'
 ], function () {
     Route::get('/getpenjualan', [LaporanPenjualanController::class, 'getData']);
+
+});
+
+
+Route::group([
+    'middleware' => 'auth:api',
+    'prefix' => 'laporan/pengeluaran'
+], function () {
+    Route::get('/getpengeluaran', [LaporanPengeluaranController::class, 'getData']);
 
 });
