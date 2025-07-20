@@ -41,6 +41,11 @@ class FifoHelper
                 ->where('jumlah_k', '>', 0)
                 ->orderBy('created_at', 'asc')
                 ->get();
+            // reject if stock is less than available
+            $available = $stoks->sum('jumlah_k');
+            if ((float)$available < (float)$jumlah) {
+                throw new Exception('Stok tidak mencukupi untuk barang ' . $kodeBarang);
+            }
 
             // Get latest purchase price even if stock is empty
             $lastHargaBeli = stok::where('kdbarang', $kodeBarang)
@@ -84,19 +89,19 @@ class FifoHelper
             }
 
             // If we still have remaining qty, create record with null stok_id
-            if ($sisaJumlah > 0) {
-                $fifoBatch[] = [
-                    'no_penjualan' => $noTransaksi,
-                    'kodebarang' => $kodeBarang,
-                    'jumlah' => $sisaJumlah,
-                    'retur' => 0,
-                    'harga_beli' => $lastHargaBeli,
-                    'harga_jual' => $hargaJual,
-                    'diskon' => $diskon * ($sisaJumlah / $jumlah),
-                    'subtotal' => ($sisaJumlah * $hargaJual) - ($diskon * ($sisaJumlah / $jumlah)),
-                    'stok_id' => null
-                ];
-            }
+            // if ($sisaJumlah > 0) {
+            //     $fifoBatch[] = [
+            //         'no_penjualan' => $noTransaksi,
+            //         'kodebarang' => $kodeBarang,
+            //         'jumlah' => $sisaJumlah,
+            //         'retur' => 0,
+            //         'harga_beli' => $lastHargaBeli,
+            //         'harga_jual' => $hargaJual,
+            //         'diskon' => $diskon * ($sisaJumlah / $jumlah),
+            //         'subtotal' => ($sisaJumlah * $hargaJual) - ($diskon * ($sisaJumlah / $jumlah)),
+            //         'stok_id' => null
+            //     ];
+            // }
 
             $allFifoBatch = array_merge($allFifoBatch, $fifoBatch);
         }
