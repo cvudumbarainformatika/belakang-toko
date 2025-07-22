@@ -98,11 +98,12 @@ class NotaSalesController extends Controller
             $data = HeaderPenjualan::leftJoin('notasales_r', 'notasales_r.notaPenjualan', '=', 'header_penjualans.no_penjualan')
             ->leftJoin('notasales_h', 'notasales_h.notrans', '=', 'notasales_r.notrans')
             ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+            ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
             ->select('header_penjualans.*',
                     'notasales_h.*',
                     'notasales_r.*',
                     DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as nilairetur'),
-                    DB::raw('header_penjualans.total - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as total')
+                    DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as total')
                     )
             ->with([
                 'pelanggan',
