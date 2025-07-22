@@ -80,17 +80,30 @@ class NotaSalesController extends Controller
                     $q->select('no_penjualan', DB::raw('sum(jumlah) as jumlah'))->groupBy('no_penjualan');
                 }
             ])
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+            ->select('header_penjualans.*',
+                    DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as nilairetur'),
+                    DB::raw('header_penjualans.total - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as total')
+                    )
             ->where(function ($q) {
                 $q->where('flag_sales', '!=', '1')
                 ->orWhereNull('flag_sales');
             })
             ->whereIn('flag', ['2', '3', '7'])
             ->orderBy('tempo', 'asc')
+            ->groupBy('header_penjualans.no_penjualan')
             ->get();
             return new JsonResponse($data);
         }else{
             $data = HeaderPenjualan::leftJoin('notasales_r', 'notasales_r.notaPenjualan', '=', 'header_penjualans.no_penjualan')
             ->leftJoin('notasales_h', 'notasales_h.notrans', '=', 'notasales_r.notrans')
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+            ->select('header_penjualans.*',
+                    'notasales_h.*',
+                    'notasales_r.*',
+                    DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as nilairetur'),
+                    DB::raw('header_penjualans.total - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as total')
+                    )
             ->with([
                 'pelanggan',
                 'sales',
