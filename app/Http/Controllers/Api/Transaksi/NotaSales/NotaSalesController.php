@@ -83,8 +83,6 @@ class NotaSalesController extends Controller
             ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
             ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
             ->select('header_penjualans.*',
-                    'notasales_h.*',
-                    'notasales_r.*',
                     DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as nilairetur'),
                     DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as total')
                     )
@@ -95,6 +93,7 @@ class NotaSalesController extends Controller
             ->whereIn('flag', ['2', '3', '7'])
             ->orderBy('tempo', 'asc')
             ->groupBy('header_penjualans.no_penjualan')
+            ->havingRaw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) != 0')
             ->get();
             return new JsonResponse($data);
         }else{
@@ -124,6 +123,7 @@ class NotaSalesController extends Controller
                 ->where('notasales_h.kdsales', request('kdsales'))
                 ->where('kunci', '1')
                 ->groupBy('header_penjualans.no_penjualan')
+                ->havingRaw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) != 0')
                 // ->whereIn('flag', ['2', '3', '7'])
                 ->orderBy('tempo', 'asc')
                 ->get();
