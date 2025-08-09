@@ -42,12 +42,15 @@ class LaporanPenjualanController extends Controller
         )
         ->with('detail',function($query){
             $query->join('barangs', 'barangs.kodebarang', '=', 'detail_penjualans.kodebarang')
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.detail_penjualan_id', '=', 'detail_penjualans.id')
             ->select(
                 'detail_penjualans.*',
                 'barangs.namabarang',
                 'barangs.kategori',
                 'barangs.satuan_k',
                 'barangs.satuan_b',
+                'detail_retur_penjualans.jumlah as jumlah_retur',
+                'detail_retur_penjualans.subtotal as nilai_retur'
             );
         })
         ->havingRaw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) != 0')
