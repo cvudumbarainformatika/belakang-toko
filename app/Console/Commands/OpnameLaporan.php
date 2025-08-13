@@ -17,7 +17,7 @@
         // // $endOfMonth = Carbon::now()->setTime(23, 59, 59);
         // $startOfMonth = Carbon::now()->startOfMonth();
 
-         $currentDate = Carbon::now();
+        $currentDate = Carbon::now();
         if ($currentDate->day == 1 && $currentDate->hour == 0 && $currentDate->minute == 30)
         // if(true)
             {
