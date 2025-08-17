@@ -37,7 +37,8 @@ class LaporanPenjualanController extends Controller
             'users.nama as namasales',
             'users.jabatan',
              DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as nilairetur'),
-             DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as totaldenganretur')
+             DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as totaldenganretur'),
+             DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan)  as totalxx')
 
         )
         ->with('detail',function($query){
@@ -57,5 +58,11 @@ class LaporanPenjualanController extends Controller
         ->groupBy('header_penjualans.no_penjualan')
         ->get();
         return new JsonResponse($data);
+        //  return response()->json([
+        //     'nilairetur' => $data->sum('nilairetur'),
+        //     'kasmasuk' => $data->sum('totaldenganretur'),
+        //     'total' => $data->sum('total'),
+        //     $data,
+        // ]);
     }
 }

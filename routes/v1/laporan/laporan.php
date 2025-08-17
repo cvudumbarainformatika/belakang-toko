@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Laporan\LaporanAkuntansiController;
 use App\Http\Controllers\Api\Laporan\LaporanPenerimaanController;
 use App\Http\Controllers\Api\Laporan\LaporanPengeluaranController;
 use App\Http\Controllers\Api\Laporan\LaporanPenjualanController;
@@ -28,3 +29,20 @@ Route::group([
     Route::get('/getpengeluaran', [LaporanPengeluaranController::class, 'getData']);
 
 });
+
+Route::group([
+    'middleware' => 'auth:api',
+    'prefix' => 'laporan/aruskas'
+], function () {
+    Route::get('/getaruskas', [LaporanAkuntansiController::class, 'Aruskas']);
+
+});
+
+Route::group([
+    'middleware' => 'auth:api',
+    'prefix' => 'laporan/labarugi'
+], function () {
+    Route::get('/getlabarugi', [LaporanAkuntansiController::class, 'Labarugi']);
+
+});
+
