@@ -37,7 +37,7 @@ class PembayaranHutangController extends Controller
 
     public function listhutangbynopembayaran()
     {
-        return request('nopenerimaan');
+        // return request('nopenerimaan');
         $data = pembayaranhutang_h::with(
             [
                 'supplier',

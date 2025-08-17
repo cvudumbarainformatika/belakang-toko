@@ -2,6 +2,7 @@
 
 namespace App\Models\Transaksi\Penjualan;
 
+use App\Models\Pelanggan;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +42,15 @@ class HeaderCicilan extends Model
     }
     public function cicilan()
     {
-        return $this->hasMany(PembayaranCicilan::class);
+        return $this->hasMany(PembayaranCicilan::class, 'header_ciclan_id', 'id');
+    }
+
+    public function pelanggan()
+    {
+        return $this->belongsTo(Pelanggan::class);
+    }
+    public function sales()
+    {
+        return $this->belongsTo(User::class, 'sales_id');
     }
 }
