@@ -30,6 +30,11 @@ class PembayaranPiutangController extends Controller
             $from,
             $to
         ])
+        ->when(request('q'), function ($query) {
+            $query->where(function($q) {
+                $q->where('header_cicilans.nopembayaran', 'like', '%' . request('q') . '%');
+            });
+        })
         ->whereNotNull('nopembayaran')
         ->orderBy('id', 'desc')
         ->simplePaginate(request('per_page'));

@@ -30,6 +30,11 @@ class PembayaranHutangController extends Controller
             $from,
             $to
         ])
+        ->when(request('q'), function ($query) {
+            $query->where(function($q) {
+                $q->where('pembayaran_hutang_h.notrans', 'like', '%' . request('q') . '%');
+            });
+        })
         ->orderBy('id', 'desc')
         ->simplePaginate(request('per_page'));
         return new JsonResponse($data);
