@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Laporan;
 
 use App\Http\Controllers\Controller;
+use App\Models\Laporan\OpnameHutang;
 use App\Models\Laporan\OpnamePendapatan;
 use App\Models\Laporan\OpnamePengeluaran;
 use App\Models\Laporan\OpnamePenjualan;
+use App\Models\Laporan\OpnamePiutang;
 use App\Models\Stok\StokOpname;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -66,11 +68,10 @@ class LaporanAkuntansiController extends Controller
             ->get();
 
         $totalPenjualan = $penjualan->sum('total');
-        // $penjualanSemua =  DB::table('header_penjualans')
+        // $hpp =  DB::table('header_penjualans')
         //         ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
         //         ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-        //         ->sum('detail_penjualans.subtotal');
-
+        //         ->sum(DB::raw('(detail_penjualans.jumlah * detail_penjualans.harga_jual) - (detail_penjualans.jumlah * detail_penjualans.harga_beli)'));
         //     $returpenjualan = DB::table('header_retur_penjualans')
         //         ->where('status', 1)
         //         ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
@@ -102,6 +103,9 @@ class LaporanAkuntansiController extends Controller
         $totalBeban = $beban->sum('total');
         $labaoperasional = $labaKotor - $totalBeban;
         return response()->json([
+            'persediaan_awal' => $persediaanAwal,
+            'persediaan_akhir' => $persediaanAkhir,
+            'pembelian_barang' => $pembelianBarang,
             'penjualan' => $penjualan,
             'beban' => $beban,
             'total_penjualan' => $totalPenjualan,
@@ -109,6 +113,45 @@ class LaporanAkuntansiController extends Controller
             'hpp' => $hpp,
             'laba_kotor' => $labaKotor,
             'laba_operasional' => $labaoperasional
+        ]);
+    }
+
+    public function hutangpiutang()
+    {
+        $tahun = request('tahun') ?? date('Y');
+        $bulan = request('bulan') ?? date('m');
+
+        $from = Carbon::createFromFormat('Y-m-d', "$tahun-$bulan-01")->startOfMonth()->format('Y-m-d 00:00:00');
+        $to   = Carbon::createFromFormat('Y-m-d', "$tahun-$bulan-01")->endOfMonth()->format('Y-m-d 23:59:59');
+
+        $datahutang = OpnameHutang::whereBetween('tgl_opname', [$from, $to])
+            ->groupBy('akun')
+            ->selectRaw('akun, keterangan, SUM(debit) as totaldebit, SUM(kredit) as totalkredit')
+            ->get();
+        $totalDebithutang = $datahutang->sum('totaldebit');
+        $totalKredithutang = $datahutang->sum('totalkredit');
+        $totalSisaHutang = $totalDebithutang - $totalKredithutang;
+
+
+        $datapiutang = OpnamePiutang::whereBetween('tgl_opname', [$from, $to])
+            ->groupBy('akun')
+            ->selectRaw('akun, keterangan, SUM(debit) as totaldebit, SUM(kredit) as totalkredit')
+            ->get();
+        $totalDebitpiutang = $datapiutang->sum('totaldebit');
+        $totalKreditpiutang = $datapiutang->sum('totalkredit');
+        $totalSisapiutang = $totalDebitpiutang - $totalKreditpiutang;
+
+        return response()->json([
+            'datahutang' => $datahutang,
+            'debithutang' => $totalDebithutang,
+            'kredithutang' => $totalKredithutang,
+            'sisahutang' => $totalSisaHutang,
+
+
+            'datapiutang' => $datapiutang,
+            'debitpiutang' => $totalDebitpiutang,
+            'kreditpiutang' => $totalKreditpiutang,
+            'sisapiutang' => $totalSisapiutang,
         ]);
     }
 }

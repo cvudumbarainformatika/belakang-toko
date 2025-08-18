@@ -46,3 +46,12 @@ Route::group([
 
 });
 
+Route::group([
+    'middleware' => 'auth:api',
+    'prefix' => 'laporan/hutangpiutang'
+], function () {
+    Route::get('/gethutangpiutang', [LaporanAkuntansiController::class, 'hutangpiutang']);
+
+});
+
+
