@@ -42,7 +42,7 @@ class StokOpnameController extends Controller
             $hariTerakhirBulanKemarin = $tglSekarang->subMonth()->endOfMonth()->setTime(23, 59, 59);
             $message = 'Stok opname berhasil dilakukan pada ' . $now->format('Y-m-d H:i:s') . ' dicatat sebagai tanggal opname ' . $hariTerakhirBulanKemarin->format('Y-m-d H:i:s');
             $tglOpname = $hariTerakhirBulanKemarin->format('Y-m-d H:i:s');
-            $stok = stok::get();
+            $stok = stok::where('jumlah_k', '>', 0)->get();
             foreach ($stok as $s) {
                 $data = $s;
                 $data['created_at'] = date('Y-m-d H:i:s');
