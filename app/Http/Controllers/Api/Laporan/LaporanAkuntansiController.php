@@ -68,10 +68,10 @@ class LaporanAkuntansiController extends Controller
             ->get();
 
         $totalPenjualan = $penjualan->sum('total');
-        // $hpp =  DB::table('header_penjualans')
-        //         ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
-        //         ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-        //         ->sum(DB::raw('(detail_penjualans.jumlah * detail_penjualans.harga_jual) - (detail_penjualans.jumlah * detail_penjualans.harga_beli)'));
+        $hpp =  DB::table('header_penjualans')
+                ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
+                ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+                ->sum(DB::raw('(detail_penjualans.jumlah * detail_penjualans.harga_beli)'));
         //     $returpenjualan = DB::table('header_retur_penjualans')
         //         ->where('status', 1)
         //         ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
@@ -79,20 +79,20 @@ class LaporanAkuntansiController extends Controller
         //         ->sum('detail_retur_penjualans.subtotal');
         //     $totalPenjualan = $penjualanSemua - $returpenjualan;
 
-        $lastMonth = Carbon::createFromFormat('Y-m-d', "$tahun-$bulan-01")->subMonth();
-        $persediaanAwal = StokOpname::whereYear('tgl_opname', $lastMonth->year)
-            ->whereMonth('tgl_opname', $lastMonth->month)
-            ->sum(DB::raw('jumlah_k * harga_beli_k'));
-        $persediaanAkhir = StokOpname::whereYear('tgl_opname', $tahun)
-            ->whereMonth('tgl_opname', $bulan)
-            ->sum(DB::raw('jumlah_k * harga_beli_k'));
+        // $lastMonth = Carbon::createFromFormat('Y-m-d', "$tahun-$bulan-01")->subMonth();
+        // $persediaanAwal = StokOpname::whereYear('tgl_opname', $lastMonth->year)
+        //     ->whereMonth('tgl_opname', $lastMonth->month)
+        //     ->sum(DB::raw('jumlah_k * harga_beli_k'));
+        // $persediaanAkhir = StokOpname::whereYear('tgl_opname', $tahun)
+        //     ->whereMonth('tgl_opname', $bulan)
+        //     ->sum(DB::raw('jumlah_k * harga_beli_k'));
 
-        $pembelianBarang = DB::table('penerimaan_h')
-            ->where('kunci', 1)
-            ->whereBetween('tgl_faktur', [$from, $to])
-            ->leftJoin('penerimaan_r', 'penerimaan_r.nopenerimaan', '=', 'penerimaan_h.nopenerimaan')
-            ->sum('penerimaan_r.subtotalfix');
-        $hpp = ($persediaanAwal + $pembelianBarang) - $persediaanAkhir;
+        // $pembelianBarang = DB::table('penerimaan_h')
+        //     ->where('kunci', 1)
+        //     ->whereBetween('tgl_faktur', [$from, $to])
+        //     ->leftJoin('penerimaan_r', 'penerimaan_r.nopenerimaan', '=', 'penerimaan_h.nopenerimaan')
+        //     ->sum('penerimaan_r.subtotalfix');
+        // $hpp = ($persediaanAwal + $pembelianBarang) - $persediaanAkhir;
         $labaKotor = $totalPenjualan - $hpp;
 
         $beban = OpnamePengeluaran::whereBetween('tgl_opname', [$from, $to])
@@ -103,9 +103,9 @@ class LaporanAkuntansiController extends Controller
         $totalBeban = $beban->sum('total');
         $labaoperasional = $labaKotor - $totalBeban;
         return response()->json([
-            'persediaan_awal' => $persediaanAwal,
-            'persediaan_akhir' => $persediaanAkhir,
-            'pembelian_barang' => $pembelianBarang,
+            // 'persediaan_awal' => $persediaanAwal,
+            // 'persediaan_akhir' => $persediaanAkhir,
+            // 'pembelian_barang' => $pembelianBarang,
             'penjualan' => $penjualan,
             'beban' => $beban,
             'total_penjualan' => $totalPenjualan,
