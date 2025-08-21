@@ -342,6 +342,14 @@ class PenjualanController extends Controller
     }
     public function hapusDetail(Request $request)
     {
+        $header = HeaderPenjualan::where('no_penjualan', '=', $request->no_penjualan)
+            ->first();
+        $flag = $header->flag;
+        if ((int)$flag > 0) return new JsonResponse(['message' => 'Tidak boleh dihapus, bukan Draft'], 410);
+        // return new JsonResponse([
+        //     'header' => $header,
+        //     'flag' => $flag,
+        // ]);
         $detail = DetailPenjualan::find($request->id);
         if (!$detail) {
             return new JsonResponse(['message' => 'Data Tidak Ditemukan'], 410);
@@ -349,8 +357,6 @@ class PenjualanController extends Controller
         $detail->delete();
 
         $allDetail = DetailPenjualan::where('no_penjualan', '=', $request->no_penjualan)->get();
-        $header = HeaderPenjualan::where('no_penjualan', '=', $request->no_penjualan)
-            ->first();
         $isDeleteHeader = '0';
 
         if (sizeof($allDetail) == 0) {
