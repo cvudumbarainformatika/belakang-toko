@@ -19,7 +19,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('sync:barang-likes')->everyFiveMinutes();
 
         // $schedule->command('stock:opnamelaporan')->monthly()->at('23:59');
-        $schedule->command('stock:opnamelaporan')->monthlyOn(1, '00:30');
+        // $schedule->command('stock:opnamelaporan')->monthlyOn(1, '00:30');
+        $schedule->command('stock:percobaan')->dailyAt( '00:02');
     }
 
     /**
