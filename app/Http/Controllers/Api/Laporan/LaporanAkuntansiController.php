@@ -158,11 +158,40 @@ class LaporanAkuntansiController extends Controller
             ->selectRaw('akun, keterangan, SUM(nilai) as total')
             ->get();
 
-        $totalPenjualan = $penjualan->sum('total');
         $hpp =  DB::table('header_penjualans')
-                ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
-                ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-                ->sum(DB::raw('(detail_penjualans.jumlah * detail_penjualans.harga_beli)'));
+            ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+            ->sum(DB::raw('(detail_penjualans.jumlah * detail_penjualans.harga_beli)'));
+
+        if ($penjualan->isEmpty()) {
+            $startOfMonth = Carbon::parse($from)->startOfMonth()->format('Y-m-d');
+            $endOfMonth   = Carbon::parse($to)->endOfMonth()->format('Y-m-d');
+
+            $penjualanSemua =  DB::table('header_penjualans')
+                    ->whereBetween('tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
+                    ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+                    ->sum('detail_penjualans.subtotal');
+
+            $returpenjualan = DB::table('header_retur_penjualans')
+                ->where('status', 1)
+                ->whereBetween('tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
+                ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.header_retur_penjualan_id', '=', 'header_retur_penjualans.id')
+                ->sum('detail_retur_penjualans.subtotal');
+            $totalPenjualan = $penjualanSemua - $returpenjualan;
+
+            $penjualan = [
+                [
+                    'akun' => '0001-PNJ',
+                    'keterangan' => 'Penjualan Bersih',
+                    'total' => $totalPenjualan
+                ],
+            ];
+        } else {
+            $totalPenjualan = $penjualan->sum('total');
+
+        }
+        $labaKotor = $totalPenjualan - $hpp;
+
         //     $returpenjualan = DB::table('header_retur_penjualans')
         //         ->where('status', 1)
         //         ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
@@ -184,7 +213,7 @@ class LaporanAkuntansiController extends Controller
         //     ->leftJoin('penerimaan_r', 'penerimaan_r.nopenerimaan', '=', 'penerimaan_h.nopenerimaan')
         //     ->sum('penerimaan_r.subtotalfix');
         // $hpp = ($persediaanAwal + $pembelianBarang) - $persediaanAkhir;
-        $labaKotor = $totalPenjualan - $hpp;
+
 
         $beban = OpnamePengeluaran::whereBetween('tgl_opname', [$from, $to])
             ->where('akun', '=', '0002-OUT')
