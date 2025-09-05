@@ -267,8 +267,45 @@ class LaporanAkuntansiController extends Controller
             ->groupBy('akun')
             ->selectRaw('akun, keterangan, SUM(debit) as totaldebit, SUM(kredit) as totalkredit')
             ->get();
-        $totalDebithutang = $datahutang->sum('totaldebit');
-        $totalKredithutang = $datahutang->sum('totalkredit');
+
+        if ($datahutang->isEmpty()) {
+            $startOfMonth = Carbon::parse($from)->startOfMonth()->format('Y-m-d');
+            $endOfMonth   = Carbon::parse($to)->endOfMonth()->format('Y-m-d');
+
+            $hutangpembelianBarang = DB::table('penerimaan_h')
+                ->where('kunci', 1)
+                ->where('jenis_pembayaran', 'Hutang')
+                ->whereBetween('tgl_faktur', [$startOfMonth, $endOfMonth])
+                ->leftJoin('penerimaan_r', 'penerimaan_r.nopenerimaan', '=', 'penerimaan_h.nopenerimaan')
+                ->sum('penerimaan_r.subtotalfix');
+            $Pembayaranhutang = DB::table('pembayaran_hutang_h')
+                ->whereBetween('tgl_bayar', [$startOfMonth, $endOfMonth])
+                ->leftJoin('pembayaran_hutang_r', 'pembayaran_hutang_r.notrans', '=', 'pembayaran_hutang_h.notrans')
+                ->sum('pembayaran_hutang_r.total');
+
+            $totalDebithutang = $hutangpembelianBarang;
+            $totalKredithutang = $Pembayaranhutang;
+            $datahutang = [
+                    [
+                        'akun' => '0001-HTG',
+                        'keterangan' => 'Hutang Pembelian',
+                        'totaldebit' => $hutangpembelianBarang,
+                        'totalkredit' => 0,
+                    ],
+                    [
+                        'akun' => '0002-HTG',
+                        'keterangan' => 'Pembayaran Hutang',
+                        'totaldebit' => 0,
+                        'totalkredit' => $Pembayaranhutang
+                    ],
+                ];
+
+        } else {
+            $totalDebithutang = $datahutang->sum('totaldebit');
+            $totalKredithutang = $datahutang->sum('totalkredit');
+        }
+
+
         $totalSisaHutang = $totalDebithutang - $totalKredithutang;
 
 
@@ -276,8 +313,59 @@ class LaporanAkuntansiController extends Controller
             ->groupBy('akun')
             ->selectRaw('akun, keterangan, SUM(debit) as totaldebit, SUM(kredit) as totalkredit')
             ->get();
-        $totalDebitpiutang = $datapiutang->sum('totaldebit');
-        $totalKreditpiutang = $datapiutang->sum('totalkredit');
+
+        if ($datapiutang->isEmpty()) {
+            $startOfMonth = Carbon::parse($from)->startOfMonth()->format('Y-m-d');
+            $endOfMonth   = Carbon::parse($to)->endOfMonth()->format('Y-m-d');
+
+            $penjualanDP= DB::table('header_penjualans')
+                ->where('flag', '!=', 5)
+                ->whereBetween('tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
+                ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+                ->sum('detail_penjualans.subtotal');
+
+            $piutangterbayar=DB::table('header_penjualans')
+                ->where('flag', '!=', 5)
+                // ->whereBetween('header_penjualans.tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
+                ->leftJoin('pembayaran_cicilans', function ($join) use ($startOfMonth, $endOfMonth) {
+                    $join->on('pembayaran_cicilans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+                        ->whereBetween('pembayaran_cicilans.tgl_bayar', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59']);
+                })
+                ->sum(DB::raw('COALESCE(pembayaran_cicilans.jumlah, 0)'));
+
+            $totalDPx = DB::table('header_penjualans')
+                ->where('flag', '!=', 5)
+                ->whereBetween('tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
+                ->sum('bayar');
+
+            $datapiutang = [
+                    [
+                        'akun' => '0001-PTG',
+                        'keterangan' => 'Piutang Usaha',
+                        'totaldebit' => $penjualanDP,
+                        'totalkredit' => 0,
+                    ],
+                    [
+                        'akun' => '0002-PTG',
+                        'keterangan' => 'Uang Muka',
+                        'totaldebit' => 0,
+                        'totalkredit' => $totalDPx
+                    ],
+                     [
+                        'akun' => '0003-PTG',
+                        'keterangan' => 'Piutang Diterima',
+                        'totaldebit' => 0,
+                        'totalkredit' => $piutangterbayar
+                    ],
+                ];
+
+            $totalDebitpiutang = $penjualanDP;
+            $totalKreditpiutang = $piutangterbayar + $totalDPx;
+        } else {
+
+            $totalDebitpiutang = $datapiutang->sum('totaldebit');
+            $totalKreditpiutang = $datapiutang->sum('totalkredit');
+        }
         $totalSisapiutang = $totalDebitpiutang - $totalKreditpiutang;
 
         return response()->json([
