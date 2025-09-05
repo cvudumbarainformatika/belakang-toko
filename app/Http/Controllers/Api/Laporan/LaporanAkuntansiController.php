@@ -160,8 +160,8 @@ class LaporanAkuntansiController extends Controller
 
         $hpp =  DB::table('header_penjualans')
             ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
-            ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-            ->sum(DB::raw('(detail_penjualans.jumlah * detail_penjualans.harga_beli)'));
+            ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.no_penjualan', '=', 'header_penjualans.no_penjualan')
+            ->sum(DB::raw('(detail_penjualan_fifos.jumlah * detail_penjualan_fifos.harga_beli)'));
 
         if ($penjualan->isEmpty()) {
             $startOfMonth = Carbon::parse($from)->startOfMonth()->format('Y-m-d');
