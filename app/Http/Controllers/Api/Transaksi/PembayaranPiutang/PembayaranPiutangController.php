@@ -43,6 +43,7 @@ class PembayaranPiutangController extends Controller
 
     public function listpiutang()
     {
+
         $data = HeaderPenjualan::with([
             'pelanggan',
             'sales',
@@ -51,12 +52,22 @@ class PembayaranPiutangController extends Controller
             },
             'cicilan' => function ($q) {
                     $q->select('no_penjualan', DB::raw('sum(jumlah) as jumlah'))->groupBy('no_penjualan');
-                }
-            ])
-        ->whereIn('flag', ['2', '3', '7'])
-        ->where('pelanggan_id', request('pelanggan_id'))
-        ->orderBy('id', 'desc')
-        ->get();
+            },
+            'headerRetur' => function ($q) {
+                $q->leftjoin('detail_retur_penjualans', 'detail_retur_penjualans.header_retur_penjualan_id', '=', 'header_retur_penjualans.id')
+                ->select('header_retur_penjualans.no_penjualan', DB::raw('sum(detail_retur_penjualans.subtotal) as subtotal'))
+                ->where('status', '!=', '')
+                ->groupBy('header_retur_penjualans.no_penjualan');
+            },
+        ])
+        ->whereIn('flag', ['2', '3', '7']);
+        if(request('pelanggan_id') !== '0'){
+            $data = $data->where('pelanggan_id', request('pelanggan_id'));
+        }else{
+            $data = $data->whereNull('pelanggan_id');
+        }
+        $data = $data->orderBy('id', 'desc');
+        $data = $data->get();
         return new JsonResponse($data);
     }
 
