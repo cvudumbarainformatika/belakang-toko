@@ -39,6 +39,9 @@ class BarangController extends Controller
         ]);
 
         $data = Barang::whereNull('barangs.flaging')
+            ->when(request('kodebarang'), function ($query) {
+                    $query->where('barangs.kodebarang', request('kodebarang'));
+                })
             ->when(request('q'), function ($query) {
                 $query->where(function ($q) {
                     $q->where('barangs.namabarang', 'like', '%' . request('q') . '%')
@@ -80,7 +83,7 @@ class BarangController extends Controller
                     $query->join('header_penjualans', 'header_penjualans.no_penjualan', '=', 'detail_penjualan_fifos.no_penjualan')
                         ->join('barangs', 'barangs.kodebarang', '=', 'detail_penjualan_fifos.kodebarang')
                         ->join('stoks', 'stoks.id', '=', 'detail_penjualan_fifos.stok_id')
-                        ->whereIn('header_penjualans.flag', ['2', '3', '4', '5', '7'])
+                        ->whereIn('header_penjualans.flag', ['2', '3', '4', '5', '7', '8'])
                         // ->whereBetween('header_penjualans.tgl', [$awal, $akhir])
                         ->whereBetween(DB::raw('DATE(header_penjualans.tgl)'), [$awal, $akhir])
                         ->when(request('x'), function ($q) {
@@ -187,7 +190,7 @@ class BarangController extends Controller
                     JOIN stoks ON stoks.id = detail_penjualan_fifos.stok_id
                     WHERE detail_penjualan_fifos.kodebarang = ?
                     AND header_penjualans.tgl < ?
-                    AND header_penjualans.flag IN ("2", "3", "4", "5", "7")
+                    AND header_penjualans.flag IN ("2", "3", "4", "5", "7", "8")
                     ' . (!empty($searchTrans) ? 'AND stoks.motif LIKE ?' : '') . ') as penjualan,
                     (SELECT COALESCE(SUM(detail_pengembalians.qty), 0) FROM detail_pengembalians
                     JOIN header_pengembalians ON header_pengembalians.id = detail_pengembalians.header_pengembalian_id
