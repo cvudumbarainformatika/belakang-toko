@@ -39,6 +39,9 @@ class BarangController extends Controller
         ]);
 
         $data = Barang::whereNull('barangs.flaging')
+            ->when(request('kodebarang'), function ($query) {
+                    $query->where('barangs.kodebarang', request('kodebarang'));
+                })
             ->when(request('q'), function ($query) {
                 $query->where(function ($q) {
                     $q->where('barangs.namabarang', 'like', '%' . request('q') . '%')
