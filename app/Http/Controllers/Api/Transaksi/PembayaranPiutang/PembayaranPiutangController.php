@@ -47,6 +47,7 @@ class PembayaranPiutangController extends Controller
         $data = HeaderPenjualan::with([
             'pelanggan',
             'sales',
+            'keterangan',
             'detail' => function ($q) {
                 $q->with(['masterBarang']);
             },
