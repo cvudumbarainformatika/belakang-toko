@@ -38,8 +38,8 @@ class LaporanAkuntansiController extends Controller
             $totalLunas = DB::table('header_penjualans')
                 ->where('flag', 5)
                 ->whereBetween('tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
-                ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-                ->sum('detail_penjualans.subtotal');
+                ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.no_penjualan', '=', 'header_penjualans.no_penjualan')
+                ->sum('detail_penjualan_fifos.subtotal');
 
             // Penjualan Menggunakan DP (flag = 7)
             $totalDP = DB::table('header_penjualans')
@@ -169,8 +169,8 @@ class LaporanAkuntansiController extends Controller
 
             $penjualanSemua =  DB::table('header_penjualans')
                     ->whereBetween('tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
-                    ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-                    ->sum('detail_penjualans.subtotal');
+                    ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.no_penjualan', '=', 'header_penjualans.no_penjualan')
+                    ->sum('detail_penjualan_fifos.subtotal');
 
             $returpenjualan = DB::table('header_retur_penjualans')
                 ->where('status', 1)
@@ -321,8 +321,8 @@ class LaporanAkuntansiController extends Controller
             $penjualanDP= DB::table('header_penjualans')
                 ->where('flag', '!=', 5)
                 ->whereBetween('tgl', [$startOfMonth . ' 00:00:00', $endOfMonth . ' 23:59:59'])
-                ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-                ->sum('detail_penjualans.subtotal');
+                ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.no_penjualan', '=', 'header_penjualans.no_penjualan')
+                ->sum('detail_penjualan_fifos.subtotal');
 
             $piutangterbayar=DB::table('header_penjualans')
                 ->where('flag', '!=', 5)
