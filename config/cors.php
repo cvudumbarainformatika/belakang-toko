@@ -19,7 +19,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'], // URL Quasar Anda
+    'allowed_origins' => [
+        'http://192.168.33.101:8112', // domain frontend kamu
+        'http://localhost:9300',  // kalau develop di localhost
+    ],
 
     'allowed_origins_patterns' => [],
 
