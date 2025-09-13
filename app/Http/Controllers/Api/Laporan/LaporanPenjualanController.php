@@ -18,7 +18,7 @@ class LaporanPenjualanController extends Controller
         ->leftJoin('pelanggans', 'pelanggans.id', '=', 'header_penjualans.pelanggan_id')
         ->leftJoin('users', 'users.id', '=', 'header_penjualans.sales_id')
         ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
-        ->leftJoin('detail_penjualans', 'detail_penjualans.no_penjualan', '=', 'header_penjualans.no_penjualan')
+        ->leftJoin('detail_penjualan_fifos', 'detail_penjualan_fifos.no_penjualan', '=', 'header_penjualans.no_penjualan')
         ->when(request('sales'), function($x) {
             $x->where('header_penjualans.sales_id', request('sales'));
         })
@@ -37,15 +37,15 @@ class LaporanPenjualanController extends Controller
             'users.nama as namasales',
             'users.jabatan',
              DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as nilairetur'),
-             DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as totaldenganretur'),
-             DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan)  as totalxx')
+             DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan_fifos WHERE detail_penjualan_fifos.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) as totaldenganretur'),
+             DB::raw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan_fifos WHERE detail_penjualan_fifos.no_penjualan = header_penjualans.no_penjualan)  as totalxx')
 
         )
-        ->with('detail',function($query){
-            $query->join('barangs', 'barangs.kodebarang', '=', 'detail_penjualans.kodebarang')
-            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.detail_penjualan_id', '=', 'detail_penjualans.id')
+        ->with('detailFifo',function($query){
+            $query->join('barangs', 'barangs.kodebarang', '=', 'detail_penjualan_fifos.kodebarang')
+            ->leftJoin('detail_retur_penjualans', 'detail_retur_penjualans.detail_penjualan_id', '=', 'detail_penjualan_fifos.id')
             ->select(
-                'detail_penjualans.*',
+                'detail_penjualan_fifos.*',
                 'barangs.namabarang',
                 'barangs.kategori',
                 'barangs.satuan_k',
@@ -54,7 +54,7 @@ class LaporanPenjualanController extends Controller
                 'detail_retur_penjualans.subtotal as nilai_retur'
             );
         })
-        ->havingRaw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualans WHERE detail_penjualans.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) != 0')
+        ->havingRaw('(SELECT COALESCE(SUM(subtotal), 0) FROM detail_penjualan_fifos WHERE detail_penjualan_fifos.no_penjualan = header_penjualans.no_penjualan) - (SELECT COALESCE(SUM(subtotal), 0) FROM detail_retur_penjualans WHERE detail_retur_penjualans.no_penjualan = header_penjualans.no_penjualan) != 0')
         ->groupBy('header_penjualans.no_penjualan')
         ->get();
         return new JsonResponse($data);
