@@ -463,7 +463,7 @@ class PenjualanController extends Controller
 
             // Process FIFO for all details at once
             try {
-                $detaiPengurangan = FifoHelper::processFifo($request->no_penjualan);
+                if (!DetailPenjualanFifo::where('no_penjualan', $request->no_penjualan)->exists()) $detaiPengurangan = FifoHelper::processFifo($request->no_penjualan);
             } catch (\Exception $e) {
                 throw new \Exception("Error memproses FIFO: " . $e->getMessage());
             }

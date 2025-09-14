@@ -6,6 +6,7 @@ use App\Models\Barang;
 use App\Models\Stok\stok;
 use App\Models\Transaksi\Penjualan\DetailPenjualan;
 use App\Models\Transaksi\Penjualan\DetailPenjualanFifo;
+use Carbon\Carbon;
 use Exception;
 
 class FifoHelper
@@ -77,7 +78,9 @@ class FifoHelper
                     'harga_jual' => $hargaJual,
                     'diskon' => $diskon * ($qtyAmbil / $jumlah),
                     'subtotal' => ($qtyAmbil * $hargaJual) - ($diskon * ($qtyAmbil / $jumlah)),
-                    'stok_id' => $stok->id
+                    'stok_id' => $stok->id,
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
                 ];
 
                 // Update stock quantity if needed
