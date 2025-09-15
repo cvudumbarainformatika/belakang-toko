@@ -172,7 +172,7 @@ class LaporanAkuntansiController extends Controller
                             ->on('detail_penjualan_fifos.kodebarang', '=', 'detail_retur_penjualans.kodebarang');
                     })
                 ->sum(DB::raw('(detail_retur_penjualans.jumlah * detail_penjualan_fifos.harga_beli)'));
-        $nilaihpp = $hpp + $returhpp;
+        $nilaihpp = $hpp - $returhpp;
         if ($penjualan->isEmpty()) {
             $startOfMonth = Carbon::parse($from)->startOfMonth()->format('Y-m-d');
             $endOfMonth   = Carbon::parse($to)->endOfMonth()->format('Y-m-d');
@@ -200,7 +200,7 @@ class LaporanAkuntansiController extends Controller
             $totalPenjualan = $penjualan->sum('total');
 
         }
-        $labaKotor = $totalPenjualan - $hpp;
+        $labaKotor = $totalPenjualan - $nilaihpp;
 
         //     $returpenjualan = DB::table('header_retur_penjualans')
         //         ->where('status', 1)
