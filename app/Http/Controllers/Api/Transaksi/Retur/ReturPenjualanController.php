@@ -67,7 +67,7 @@ class ReturPenjualanController extends Controller
             })
 
             ->whereBetween('tgl', [$from . ' 00:00:00', $to . ' 23:59:59'])
-            ->whereIn('flag', ['2', '3', '4', '5'])
+            //->whereIn('flag', ['2', '3', '4', '5'])
             ->with([
                 'pelanggan',
                 'sales',
