@@ -40,8 +40,8 @@ class BarangController extends Controller
 
         $data = Barang::whereNull('barangs.flaging')
             ->when(request('kodebarang'), function ($query) {
-                    $query->where('barangs.kodebarang', request('kodebarang'));
-                })
+                $query->where('barangs.kodebarang', request('kodebarang'));
+            })
             ->when(request('q'), function ($query) {
                 $query->where(function ($q) {
                     $q->where('barangs.namabarang', 'like', '%' . request('q') . '%')
@@ -146,10 +146,10 @@ class BarangController extends Controller
                 },
                 'penyesuaian' => function ($query) use ($awal, $akhir) {
                     $query->whereBetween('penyesuaians.tgl', [$awal, $akhir])
-                    ->when(request('x'), function ($q) {
-                        $searchTrans = request('x');
-                        $q->whereRaw('LOWER(motif) LIKE LOWER(?)', ["%$searchTrans%"]);
-                    })
+                        ->when(request('x'), function ($q) {
+                            $searchTrans = request('x');
+                            $q->whereRaw('LOWER(motif) LIKE LOWER(?)', ["%$searchTrans%"]);
+                        })
                         ->select('*');
                 },
                 'stoks'
@@ -162,19 +162,21 @@ class BarangController extends Controller
                 COALESCE(ROUND(SUM(CASE WHEN stoks.isi != 0 THEN stoks.jumlah_k / stoks.isi ELSE 0 END), 2), 0) as stok_besar
             ')
             ->when(request('minim_stok'), function ($query) {
-                $query->havingRaw('
+                $query->havingRaw(
+                    '
                     CASE
                         WHEN COALESCE(SUM(CASE WHEN stoks.jumlah_k != 0 THEN stoks.jumlah_k ELSE 0 END), 0) <= barangs.minim_stok THEN 1
                         WHEN COALESCE(SUM(CASE WHEN stoks.jumlah_k != 0 THEN stoks.jumlah_k ELSE 0 END), 0) > barangs.minim_stok THEN 2
-                    END = ?', [request('minim_stok')]
+                    END = ?',
+                    [request('minim_stok')]
                 );
             })
             ->groupBy('barangs.id')
             ->orderBy('barangs.id', 'desc')
             ->simplePaginate(request('per_page'));
 
-            // Transformasi data untuk menambahkan kartustok dan data mentah
-            $data->getCollection()->transform(function ($item) use ($awal, $bulanSebelumnya, $akhirBulanSebelumnya) {
+        // Transformasi data untuk menambahkan kartustok dan data mentah
+        $data->getCollection()->transform(function ($item) use ($awal, $bulanSebelumnya, $akhirBulanSebelumnya) {
             $searchTrans = request('x') ?? '';
 
             // Hitung saldo awal (sebelum rentang tanggal) dengan filter berdasarkan motif
@@ -213,17 +215,23 @@ class BarangController extends Controller
                     AND penyesuaians.tgl < ?
                     ' . (!empty($searchTrans) ? 'AND penyesuaians.motif LIKE ?' : '') . ') as penyesuaian_negatif
                 ', [
-                    $item->kodebarang, $awal,
+                    $item->kodebarang,
+                    $awal,
                     ...(!empty($searchTrans) ? ["%$searchTrans%"] : []),
-                    $item->kodebarang, $awal,
+                    $item->kodebarang,
+                    $awal,
                     ...(!empty($searchTrans) ? ["%$searchTrans%"] : []),
-                    $item->kodebarang, $awal,
+                    $item->kodebarang,
+                    $awal,
                     ...(!empty($searchTrans) ? ["%$searchTrans%"] : []),
-                    $item->kodebarang, $awal,
+                    $item->kodebarang,
+                    $awal,
                     ...(!empty($searchTrans) ? ["%$searchTrans%"] : []),
-                    $item->kodebarang, $awal,
+                    $item->kodebarang,
+                    $awal,
                     ...(!empty($searchTrans) ? ["%$searchTrans%"] : []),
-                    $item->kodebarang, $awal,
+                    $item->kodebarang,
+                    $awal,
                     ...(!empty($searchTrans) ? ["%$searchTrans%"] : []),
                 ])
                 ->first();
@@ -245,8 +253,10 @@ class BarangController extends Controller
 
             // Tambahkan penerimaan (hanya yang kunci = '1' atau tidak null)
             foreach ($item->penerimaan as $penerimaan) {
-                if (!is_null($penerimaan->kunci) && $penerimaan->kunci === '1' &&
-                    (empty($searchTrans) || stripos($penerimaan->motif, $searchTrans) !== false)) {
+                if (
+                    !is_null($penerimaan->kunci) && $penerimaan->kunci === '1' &&
+                    (empty($searchTrans) || stripos($penerimaan->motif, $searchTrans) !== false)
+                ) {
                     $transaksi[] = [
                         'type' => 'penerimaan',
                         'tanggal' => $penerimaan->tanggal,
@@ -380,7 +390,9 @@ class BarangController extends Controller
             'namabarang.required' => 'Nama Barang Wajib diisi.',
             'hargajual1.numeric' => 'Harga Pengguna Harus Angka.',
             'hargajual2.numeric' => 'Harga Toko Harus Angka.',
-            'hargabeli.numeric' => 'Harga Beli Harus Angka.'
+            'hargabeli.numeric' => 'Harga Beli Harus Angka.',
+            'bonus_cash.numeric' => 'Bonus jika Pembayaran Cash Harus Angka.',
+            'bonus_hutang.numeric' => 'Bonus jika Pembayaran Hutang Harus Angka.',
         ];
 
         $request->validate([
@@ -389,12 +401,13 @@ class BarangController extends Controller
             'hargajual1' => 'nullable|numeric',
             'hargajual2' => 'nullable|numeric',
             'hargabeli' => 'nullable|numeric',
+            'bonus_cash' => 'nullable|numeric',
+            'bonus_hutang' => 'nullable|numeric',
 
         ], $messages);
 
-        if ($request->kodebarang === '' || $request->kodebarang === null)
-        {
-             DB::select('call kodebarang(@nomor)');
+        if ($request->kodebarang === '' || $request->kodebarang === null) {
+            DB::select('call kodebarang(@nomor)');
             $x = DB::table('counter')->select('kodebarang')->get();
             $no = $x[0]->kodebarang;
 
@@ -407,32 +420,35 @@ class BarangController extends Controller
 
         $namagabung = $request->brand . ' ' . $request->ukuran . ' ' . $request->namagabung . ' ' . $request->kualitas;
         $simpan = Barang::updateOrCreate(
-        [
-            'kodebarang' => $kodebarang
-        ],
-        [
-            'namagabung' => $request->namagabung,
-            'namabarang' => $namagabung,
-            'kualitas' => $request->kualitas,
-            'brand' => $request->brand,
-            'kodejenis' => $request->kodejenis,
-            'seri' => $request->seri,
-            'satuan_b' => $request->satuan_b,
-            'satuan_k' => $request->satuan_k,
-            'isi' => $request->isi,
-            'kategori' => $request->kategori,
-            'hargajual1' => $request->hargajual1,
-            'hargajual2' => $request->hargajual2,
-            'hargajual1besar' => $request->hargajual1besar,
-            'hargajual2besar' => $request->hargajual2besar,
-            'hargabeli' => $request->hargabeli,
-            'minim_stok' => $request->minim_stok,
-            'ukuran' => $request->ukuran,
-        ]);
+            [
+                'kodebarang' => $kodebarang
+            ],
+            [
+                'namagabung' => $request->namagabung,
+                'namabarang' => $namagabung,
+                'kualitas' => $request->kualitas,
+                'brand' => $request->brand,
+                'kodejenis' => $request->kodejenis,
+                'seri' => $request->seri,
+                'satuan_b' => $request->satuan_b,
+                'satuan_k' => $request->satuan_k,
+                'isi' => $request->isi,
+                'kategori' => $request->kategori,
+                'hargajual1' => $request->hargajual1,
+                'hargajual2' => $request->hargajual2,
+                'hargajual1besar' => $request->hargajual1besar,
+                'hargajual2besar' => $request->hargajual2besar,
+                'hargabeli' => $request->hargabeli,
+                'minim_stok' => $request->minim_stok,
+                'ukuran' => $request->ukuran,
+                'bonus_cash' => $request->bonus_cash,
+                'bonus_hutang' => $request->bonus_hutang,
+            ]
+        );
         if ($request->has('rincians')) {
-        $hasThumbnail = false; // Flag untuk menandai apakah sudah ada thumbnail
+            $hasThumbnail = false; // Flag untuk menandai apakah sudah ada thumbnail
 
-        foreach ($request->rincians as $img) {
+            foreach ($request->rincians as $img) {
                 if (isset($img['gambar']) && $img['gambar']->isValid()) {
                     $path = $img['gambar']->store('images', 'public');
 
@@ -455,11 +471,12 @@ class BarangController extends Controller
         }
 
         return new JsonResponse(
-                [
-                    'message' => 'Data Berhasil disimpan...!!!',
-                    'result' => $simpan->load('rincians')
-                ], 200);
-
+            [
+                'message' => 'Data Berhasil disimpan...!!!',
+                'result' => $simpan->load('rincians')
+            ],
+            200
+        );
     }
     public function setThumbnail(Request $request)
     {
