@@ -15,8 +15,8 @@ class LaporanPenerimaanController extends Controller
         $akhir=request('tglakhir', 'Y-m-d');
 
         $data = Penerimaan_h::where('penerimaan_h.kunci', '=', '1')
-        ->join('suppliers', 'suppliers.kodesupl', '=', 'penerimaan_h.kdsupllier')
-        ->join('penerimaan_r', 'penerimaan_r.nopenerimaan', '=', 'penerimaan_h.nopenerimaan')
+        ->leftJoin('suppliers', 'suppliers.kodesupl', '=', 'penerimaan_h.kdsupllier')
+        ->leftJoin('penerimaan_r', 'penerimaan_r.nopenerimaan', '=', 'penerimaan_h.nopenerimaan')
         ->whereBetween('penerimaan_h.tgl_faktur', [$awal, $akhir])
         ->when(request('supplier'), function($x) {
             $x->where('penerimaan_h.kdsupllier', request('supplier'));
