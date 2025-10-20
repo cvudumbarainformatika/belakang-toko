@@ -431,6 +431,10 @@ class PenjualanController extends Controller
     }
     public function simpanPembayaran(Request $request)
     {
+
+        // return new JsonResponse([
+        //     'bonus' => $bonus
+        // ]);
         try {
             DB::beginTransaction();
             $data = HeaderPenjualan::where('no_penjualan', $request->no_penjualan)->first();
@@ -468,6 +472,8 @@ class PenjualanController extends Controller
                 throw new \Exception("Error memproses FIFO: " . $e->getMessage());
             }
 
+            $bonus = self::setBonus($request->no_penjualan, $request->flag);
+
             $data->load([
                 'detail.masterBarang',
                 // 'detailFifo.masterBarang',
@@ -503,5 +509,39 @@ class PenjualanController extends Controller
                 'file' => $th->getFile(),
             ], 410);
         }
+    }
+    public static function setBonus($no_penjualan, $flag)
+    {
+        // flag lunas = 5, selain itu hutang
+        $header = HeaderPenjualan::where('no_penjualan', '=', $no_penjualan)
+            ->first();
+        $rinci = DetailPenjualan::where('no_penjualan', '=', $no_penjualan)
+            ->with('masterBarang')
+            ->get();
+        // $data = [];
+        foreach ($rinci as $key) {
+            $bonusCash = (float)$key->masterBarang->bonus_cash;
+            $bonusHutang = (float)$key->masterBarang->bonus_hutang;
+            $bonus = $flag == '5' ? $bonusCash : $bonusHutang;
+            $subBonus = (float)$key->jumlah * $bonus;
+
+            $key->update(['sub_bonus' => $subBonus]);
+            // $data[] = [
+            //     'data' => $key,
+            //     'bonusCash' => $bonusCash,
+            //     'bonusHutang' => $bonusHutang,
+            //     'bonus' => $bonus,
+            //     'subBonus' => $subBonus,
+            //     // 'barang' => $key->masterBarang
+            // ];
+        }
+        $total = $rinci->sum('sub_bonus');
+        $header->update(['total_bonus' => $total]);
+        return [
+            'header' => $header,
+            'rinci' => $rinci,
+            'flag' => $flag,
+            'total' => $total,
+        ];
     }
 }
