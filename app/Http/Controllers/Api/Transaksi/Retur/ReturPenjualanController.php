@@ -108,9 +108,9 @@ class ReturPenjualanController extends Controller
             'kodebarang' => 'required',
             'retur' => 'required',
         ]);
-        $cektrans = HeaderPenjualan::where('no_penjualan', $request->no_penjualan)->where('flag', '!=','2')->count();
+        $cektrans = HeaderPenjualan::where('no_penjualan', $request->no_penjualan)->where('flag', '!=', '2')->count();
         $cekpembayaran = PembayaranCicilan::where('no_penjualan', $request->no_penjualan)->count();
-        if($cektrans === 0 && $cekpembayaran > 0){
+        if ($cektrans === 0 && $cekpembayaran > 0) {
             return new JsonResponse(['message' => 'Maaf Tidak Dapat Diretur...,Nota Ini Sudah Dicicil...!!!'], 500);
         }
         DB::beginTransaction();
@@ -158,7 +158,8 @@ class ReturPenjualanController extends Controller
                     'detail_penjualan_id' => $request->id,
                     'jumlah' => $request->retur,
                     'diskon' => $request->diskon,
-                    'subtotal' => ($request->harga_jual-$request->diskon) * $request->retur,
+                    'subtotal' => ($request->harga_jual * $request->retur) - $request->diskon, // diskon per subtotal
+
                 ]
             );
             $total = DetailReturPenjualan::where('header_retur_penjualan_id', $headRetur->id)->sum('subtotal');
