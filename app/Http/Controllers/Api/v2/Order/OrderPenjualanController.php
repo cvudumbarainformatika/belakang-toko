@@ -41,6 +41,9 @@ class OrderPenjualanController extends Controller
             'rincians.*.jumlah'       => 'required|integer|min:1',
             'rincians.*.harga'     => 'required|numeric|min:0',
             'rincians.*.subtotal'  => 'required|numeric|min:0',
+            'rincians.*.isi'  => 'required|numeric|min:1',
+            'rincians.*.satuan'  => 'nullable',
+            'rincians.*.satuans'  => 'nullable',
         ]);
 
         DB::beginTransaction();
@@ -60,6 +63,7 @@ class OrderPenjualanController extends Controller
                 $order->rincians()->create([
                     'barang_id' => $rincian['barang_id'],
                     'jumlah'       => $rincian['jumlah'],
+                    'isi'       => $rincian['isi'],
                     'harga'     => $rincian['harga'],
                     'subtotal'  => $rincian['subtotal'],
                     'satuan'  => $rincian['satuan'],
