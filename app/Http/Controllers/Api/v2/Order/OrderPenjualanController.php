@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api\v2\Order;
 
 use App\Events\SendNotificationEvent;
@@ -31,7 +32,7 @@ class OrderPenjualanController extends Controller
 
         // Validasi input utama dan rincian (tglorder dihapus)
         $validated = $request->validate([
-            'pelanggan_id'       => 'required|exists:users,id',
+            'pelanggan_id'       => 'required|exists:pelanggans,id',
             'sales_id'           => 'required|exists:users,id',
             'total_harga'        => 'required|numeric|min:0',
             'status_pembayaran'  => 'nullable|in:1,2',
@@ -86,19 +87,19 @@ class OrderPenjualanController extends Controller
     {
         $user = Auth::user();
         $jabatan = $user->kodejabatan;
-        
+
         $query = OrderPenjualan::query();
-            $query->where(function ($query) use ($user, $jabatan) {
-                if ($jabatan == 3) { // Sales
-                    $query->where('sales_id', $user->id);
-                } else { // Pelanggan
-                    $query->where('pelanggan_id', $user->id);
-                }
-            })
+        $query->where(function ($query) use ($user, $jabatan) {
+            if ($jabatan == 3) { // Sales
+                $query->where('sales_id', $user->id);
+            } else { // Pelanggan
+                $query->where('pelanggan_id', $user->id);
+            }
+        })
             ->orderByDesc('tglorder')
             ->limit(100);
         $orders = $this->eagerLoadOrder($query)->get();
-        
+
 
         return response()->json([
             'success' => true,
@@ -125,66 +126,77 @@ class OrderPenjualanController extends Controller
         $noorder = request('order');
 
         $order = OrderPenjualan::query();
-        $order->where('noorder',$noorder);
+        $order->where('noorder', $noorder);
         $data = $this->eagerLoadOrder($order)->first();
 
         $result = [
-            'message'=>'success',
-            'data'=> $data
+            'message' => 'success',
+            'data' => $data
         ];
-       return response()->json($result);
+        return response()->json($result);
     }
 
     public function updatePembayaran(Request $request)
     {
-       $noorder = $request->noorder;
+        $noorder = $request->noorder;
 
-       $data = OrderPenjualan::where('noorder', $noorder)->firstOrFail();
+        $data = OrderPenjualan::where('noorder', $noorder)->firstOrFail();
 
-       $data->metode_bayar = $request->metode_bayar;
-       $data->bayar = $request->bayar;
-       $data->tempo = $request->tempo;
-       $data->catatan = $request->catatan;
-       $data->status_order = $request->status_order;
-       $data->status_pembayaran = $request->metode_bayar === 'Kredit'? '1':'2';
+        $data->metode_bayar = $request->metode_bayar;
+        $data->bayar = $request->bayar;
+        $data->tempo = $request->tempo;
+        $data->catatan = $request->catatan;
+        $data->status_order = $request->status_order;
+        $data->status_pembayaran = $request->metode_bayar === 'Kredit' ? '1' : '2';
 
-       $data->save();
+        $data->save();
 
         $result = [
-            'message'=>'success',
-            'data'=> $noorder
+            'message' => 'success',
+            'data' => $noorder
         ];
 
-        $event = ['order'=> $data];
+        $event = ['order' => $data];
 
-        event(new SendNotificationEvent(null,'order-penjualan','order-status',$event));
-       return response()->json($result);
+        event(new SendNotificationEvent(null, 'order-penjualan', 'order-status', $event));
+        return response()->json($result);
     }
 
     public function updateSelesai(Request $request)
     {
-       $data = OrderPenjualan::find($request->id);
-       $data->status_order = $request->status_order;
+        $data = OrderPenjualan::find($request->id);
+        $data->status_order = $request->status_order;
         $data->save();
 
-        $event = ['order'=> $data];
-        event(new SendNotificationEvent(null,'order-penjualan','order-status',$event));
+        $event = ['order' => $data];
+        event(new SendNotificationEvent(null, 'order-penjualan', 'order-status', $event));
 
-       return response()->json($data);
+        return response()->json($data);
     }
 
     protected function eagerLoadOrder($query)
     {
         return $query->select(
-            'id', 'noorder', 'tglorder', 'pelanggan_id', 'sales_id', 'total_harga', 'status_order', 'status_pembayaran', 'tanggal_kirim', 'tanggal_terima','metode_bayar','bayar','tempo','catatan'
-        )->with(['rincians:id,order_penjualan_id,barang_id,jumlah,harga,satuan,satuans,subtotal', 
-        'rincians.barang:id,namabarang,isi,satuan_k,satuan_b',
-        'rincians.barang.images',  
-        'pelanggan:id,nama', 'sales:id,nama']);
-
+            'id',
+            'noorder',
+            'tglorder',
+            'pelanggan_id',
+            'sales_id',
+            'total_harga',
+            'status_order',
+            'status_pembayaran',
+            'tanggal_kirim',
+            'tanggal_terima',
+            'metode_bayar',
+            'bayar',
+            'tempo',
+            'catatan'
+        )->with([
+            'rincians:id,order_penjualan_id,barang_id,jumlah,harga,satuan,satuans,subtotal',
+            'rincians.barang:id,namabarang,isi,satuan_k,satuan_b',
+            'rincians.barang.images',
+            'pelanggan:id,nama',
+            'sales:id,nama'
+        ]);
     }
-
-
-
-
 }
