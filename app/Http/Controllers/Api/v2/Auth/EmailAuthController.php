@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\v2\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Profil;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -58,9 +59,12 @@ class EmailAuthController extends Controller
         // Buat token baru dengan Sanctum
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $maps = Profil::first();
+
         return response()->json([
             'success' => true,
             'user'    => $user,
+            'profil'    => $maps,
             'token'   => $token
         ], 200);
     }
